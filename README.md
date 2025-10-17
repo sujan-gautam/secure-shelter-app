@@ -1,73 +1,135 @@
-# Welcome to your Lovable project
+# OpenBeats - Open-Source Music Streaming Platform
 
-## Project info
+Free, ad-free, privacy-focused music streaming powered by legal sources.
 
-**URL**: https://lovable.dev/projects/fde2c025-a84f-4a4b-bcd5-5d8488cc20c2
+## 🎵 Features
 
-## How can I edit this code?
+- **Free & Legal Music**: Stream from Jamendo, Free Music Archive, Audius
+- **Secure Authentication**: JWT-based auth via Lovable Cloud (Supabase)
+- **Playlist Management**: Create, edit, and manage your playlists
+- **Search & Discovery**: Find music across multiple free APIs
+- **Favorites & History**: Save your favorite tracks and view listening history
+- **Responsive Design**: Beautiful UI that works on all devices
+- **Privacy First**: No tracking, no ads, your data stays yours
 
-There are several ways of editing your application.
+## 🏗️ Architecture
 
-**Use Lovable**
+### Frontend
+- **React** with TypeScript
+- **Vite** for fast builds
+- **TailwindCSS** for styling
+- **shadcn/ui** components
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/fde2c025-a84f-4a4b-bcd5-5d8488cc20c2) and start prompting.
+### Backend (Lovable Cloud)
+- **PostgreSQL** database for user data, playlists, and cached metadata
+- **Edge Functions** for music API integrations
+- **Row Level Security** (RLS) for data protection
+- **Built-in Authentication** with JWT
 
-Changes made via Lovable will be committed automatically to this repo.
+## 📁 Project Structure
 
-**Use your preferred IDE**
+```
+src/
+├── assets/              # Images and static assets
+├── components/
+│   ├── player/         # Music player components
+│   └── ui/             # shadcn UI components
+├── hooks/
+│   ├── useAuth.tsx     # Authentication hook
+│   └── use-mobile.tsx  # Mobile detection
+├── pages/
+│   ├── Index.tsx       # Landing page
+│   ├── Auth.tsx        # Login/Signup
+│   ├── Dashboard.tsx   # Main app interface
+│   └── NotFound.tsx    # 404 page
+├── types/
+│   └── music.ts        # TypeScript interfaces
+├── lib/
+│   ├── supabase.ts     # Supabase client
+│   └── utils.ts        # Utility functions
+└── integrations/
+    └── supabase/       # Auto-generated Supabase types
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🗄️ Database Schema
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Tables
+- **profiles**: User profile data and settings
+- **playlists**: User-created playlists
+- **track_metadata**: Cached track information
+- **playlist_tracks**: Junction table for playlist tracks
+- **user_favorites**: User's favorite tracks
+- **listening_history**: Play history
 
-Follow these steps:
+### Security
+- Row Level Security (RLS) enabled on all tables
+- Users can only access their own data
+- Public playlists are viewable by everyone
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 🚀 Getting Started
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Prerequisites
+- Node.js 18+ and npm
+- Lovable Cloud account (automatically provided)
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Installation
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+1. Clone the repository
+```bash
+git clone <your-repo-url>
+cd openbeats
+```
+
+2. Install dependencies
+```bash
+npm install
+```
+
+3. Start the development server
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+4. Open http://localhost:8080 in your browser
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🔐 Security Features
 
-**Use GitHub Codespaces**
+- **Password Hashing**: bcrypt via Supabase Auth
+- **JWT Tokens**: Secure session management
+- **Row Level Security**: Database-level access control
+- **HTTPS Only**: All connections encrypted
+- **No Tracking**: Privacy-focused architecture
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🎨 Design System
 
-## What technologies are used for this project?
+The app uses a beautiful dark theme with:
+- **Primary**: Deep purple gradient (#8B5CF6 → #6366F1)
+- **Accent**: Cyan (#06B6D4)
+- **Background**: Dark navy with gradients
+- **Glass morphism** effects on player controls
+- **Smooth animations** throughout
 
-This project is built with:
+## 🔌 API Integration (Coming Soon)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Future edge functions will integrate with:
+- **Jamendo API**: Free music platform
+- **Free Music Archive**: Public domain music
+- **Audius**: Decentralized music streaming
 
-## How can I deploy this project?
+## 📝 License
 
-Simply open [Lovable](https://lovable.dev/projects/fde2c025-a84f-4a4b-bcd5-5d8488cc20c2) and click on Share -> Publish.
+MIT License - See LICENSE file for details
 
-## Can I connect a custom domain to my Lovable project?
+## 🤝 Contributing
 
-Yes, you can!
+Contributions are welcome! Please read our contributing guidelines.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🔗 Links
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- [Documentation](https://docs.lovable.dev/)
+- [Lovable Cloud](https://lovable.dev/)
+- [Report Issues](https://github.com/your-repo/issues)
+
+---
+
+Built with ❤️ using [Lovable](https://lovable.dev)
