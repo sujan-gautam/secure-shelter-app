@@ -1,22 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useMusicSearch } from '@/hooks/useMusicSearch';
 import { PlayerBar } from '@/components/player/PlayerBar';
+import { SearchResults } from '@/components/music/SearchResults';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Music2, Search, Library, LogOut, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Track } from '@/types/music';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
+  const { search, getStreamUrl, loading: searchLoading, results } = useMusicSearch();
+  
   const [searchQuery, setSearchQuery] = useState('');
   
   // Player state
-  const [currentTrack, setCurrentTrack] = useState<any>(null);
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(75);
   const [progress, setProgress] = useState(0);
+  const [audioElement] = useState<HTMLAudioElement>(new Audio());
 
   useEffect(() => {
     if (!loading && !user) {
@@ -24,9 +30,85 @@ const Dashboard = () => {
     }
   }, [user, loading, navigate]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Setup audio element
+    audioElement.volume = volume / 100;
+    
+    audioElement.addEventListener('timeupdate', () => {
+      setProgress(audioElement.currentTime);
+    });
+
+    audioElement.addEventListener('ended', () => {
+      setIsPlaying(false);
+      handleNext();
+    });
+
+    return () => {
+      audioElement.pause();
+    };
+  }, []);
+
+  useEffect(() => {
+    audioElement.volume = volume / 100;
+  }, [volume]);
+
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.info('Search feature coming soon!');
+    if (searchQuery.trim()) {
+      console.log('Searching for:', searchQuery);
+      await search(searchQuery);
+    }
+  };
+
+  const handlePlayTrack = async (track: Track) => {
+    try {
+      console.log('Playing track:', track);
+      
+      // Get stream URL
+      const streamUrl = await getStreamUrl(track.source, track.sourceTrackId);
+      console.log('Stream URL:', streamUrl);
+      
+      // Load and play
+      audioElement.src = streamUrl;
+      setCurrentTrack(track);
+      
+      await audioElement.play();
+      setIsPlaying(true);
+      toast.success(`Now playing: ${track.title}`);
+    } catch (error) {
+      console.error('Playback error:', error);
+      toast.error('Failed to play track');
+    }
+  };
+
+  const handlePlayPause = () => {
+    if (isPlaying) {
+      audioElement.pause();
+    } else {
+      audioElement.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handlePrevious = () => {
+    toast.info('Previous track (not implemented)');
+  };
+
+  const handleNext = () => {
+    toast.info('Next track (not implemented)');
+  };
+
+  const handleProgressChange = (value: number) => {
+    audioElement.currentTime = value;
+    setProgress(value);
+  };
+
+  const handleAddToPlaylist = (track: Track) => {
+    toast.info(`Add "${track.title}" to playlist (coming soon)`);
+  };
+
+  const handleToggleFavorite = (track: Track) => {
+    toast.info(`Toggle favorite for "${track.title}" (coming soon)`);
   };
 
   const handleSignOut = async () => {
@@ -84,17 +166,42 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="text-center py-20">
-          <Music2 className="h-24 w-24 mx-auto mb-6 text-primary opacity-50" />
-          <h2 className="text-3xl font-bold mb-3">Welcome to OpenBeats</h2>
-          <p className="text-muted-foreground text-lg mb-8">
-            Your music library is empty. Start exploring free music!
-          </p>
-          <Button className="bg-gradient-primary hover:opacity-90">
-            <Search className="mr-2 h-5 w-5" />
-            Browse Music
-          </Button>
-        </div>
+        {searchLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+
+        {!searchLoading && results.length === 0 && !searchQuery && (
+          <div className="text-center py-20">
+            <Music2 className="h-24 w-24 mx-auto mb-6 text-primary opacity-50" />
+            <h2 className="text-3xl font-bold mb-3">Welcome to OpenBeats</h2>
+            <p className="text-muted-foreground text-lg mb-8">
+              Search for free music from Jamendo, Free Music Archive, and Audius
+            </p>
+          </div>
+        )}
+
+        {!searchLoading && results.length === 0 && searchQuery && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No results found for "{searchQuery}"</p>
+          </div>
+        )}
+
+        {results.length > 0 && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold mb-2">Search Results</h2>
+              <p className="text-muted-foreground">Found {results.length} tracks</p>
+            </div>
+            <SearchResults
+              tracks={results}
+              onPlayTrack={handlePlayTrack}
+              onAddToPlaylist={handleAddToPlaylist}
+              onToggleFavorite={handleToggleFavorite}
+            />
+          </div>
+        )}
       </main>
 
       {/* Player Bar */}
@@ -103,11 +210,11 @@ const Dashboard = () => {
         isPlaying={isPlaying}
         volume={volume}
         progress={progress}
-        onPlayPause={() => setIsPlaying(!isPlaying)}
-        onPrevious={() => toast.info('Previous track')}
-        onNext={() => toast.info('Next track')}
+        onPlayPause={handlePlayPause}
+        onPrevious={handlePrevious}
+        onNext={handleNext}
         onVolumeChange={setVolume}
-        onProgressChange={setProgress}
+        onProgressChange={handleProgressChange}
       />
     </div>
   );

@@ -1,1 +1,7 @@
 project_id = "zokteleyadyodflghuse"
+
+[functions.music-search]
+verify_jwt = false
+
+[functions.get-stream-url]
+verify_jwt = false
