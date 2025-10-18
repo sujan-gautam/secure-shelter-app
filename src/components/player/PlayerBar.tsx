@@ -1,17 +1,24 @@
-import { Play, Pause, SkipBack, SkipForward, Volume2, Heart } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, Repeat, Repeat1, Shuffle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { RepeatMode } from '@/hooks/useQueue';
 
 interface PlayerBarProps {
   currentTrack: any | null;
   isPlaying: boolean;
   volume: number;
   progress: number;
+  shuffle: boolean;
+  repeat: RepeatMode;
+  isFavorite: boolean;
   onPlayPause: () => void;
   onPrevious: () => void;
   onNext: () => void;
   onVolumeChange: (value: number) => void;
   onProgressChange: (value: number) => void;
+  onToggleShuffle: () => void;
+  onToggleRepeat: () => void;
+  onToggleFavorite: () => void;
 }
 
 export const PlayerBar = ({
@@ -19,11 +26,17 @@ export const PlayerBar = ({
   isPlaying,
   volume,
   progress,
+  shuffle,
+  repeat,
+  isFavorite,
   onPlayPause,
   onPrevious,
   onNext,
   onVolumeChange,
   onProgressChange,
+  onToggleShuffle,
+  onToggleRepeat,
+  onToggleFavorite,
 }: PlayerBarProps) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -71,13 +84,26 @@ export const PlayerBar = ({
                 {currentTrack.artists.join(', ')}
               </p>
             </div>
-            <Button variant="ghost" size="icon" className="shrink-0">
-              <Heart className="h-5 w-5" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="shrink-0"
+              onClick={onToggleFavorite}
+            >
+              <Heart className={isFavorite ? "h-5 w-5 fill-primary text-primary" : "h-5 w-5"} />
             </Button>
           </div>
 
           {/* Controls */}
           <div className="flex items-center gap-2 mx-8">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onToggleShuffle}
+              className={shuffle ? "text-primary" : ""}
+            >
+              <Shuffle className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={onPrevious}>
               <SkipBack className="h-5 w-5" />
             </Button>
@@ -90,6 +116,14 @@ export const PlayerBar = ({
             </Button>
             <Button variant="ghost" size="icon" onClick={onNext}>
               <SkipForward className="h-5 w-5" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onToggleRepeat}
+              className={repeat !== 'off' ? "text-primary" : ""}
+            >
+              {repeat === 'one' ? <Repeat1 className="h-4 w-4" /> : <Repeat className="h-4 w-4" />}
             </Button>
           </div>
 

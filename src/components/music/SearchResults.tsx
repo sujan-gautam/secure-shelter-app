@@ -1,20 +1,21 @@
 import { Track } from '@/types/music';
 import { Button } from '@/components/ui/button';
-import { Play, Heart, Plus } from 'lucide-react';
+import { Play, Heart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { PlaylistDialog } from './PlaylistDialog';
 
 interface SearchResultsProps {
   tracks: Track[];
   onPlayTrack: (track: Track) => void;
-  onAddToPlaylist: (track: Track) => void;
   onToggleFavorite: (track: Track) => void;
+  isFavorite: (trackId: string) => boolean;
 }
 
 export const SearchResults = ({ 
   tracks, 
   onPlayTrack,
-  onAddToPlaylist,
-  onToggleFavorite 
+  onToggleFavorite,
+  isFavorite
 }: SearchResultsProps) => {
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -104,15 +105,9 @@ export const SearchResults = ({
                 size="icon"
                 onClick={() => onToggleFavorite(track)}
               >
-                <Heart className="h-4 w-4" />
+                <Heart className={isFavorite(track.id) ? "h-4 w-4 fill-primary text-primary" : "h-4 w-4"} />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onAddToPlaylist(track)}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+              <PlaylistDialog track={track} />
             </div>
           </div>
         </div>

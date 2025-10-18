@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useMusicSearch } from '@/hooks/useMusicSearch';
+import { useQueue } from '@/hooks/useQueue';
+import { useFavorites } from '@/hooks/useFavorites';
 import { PlayerBar } from '@/components/player/PlayerBar';
 import { SearchResults } from '@/components/music/SearchResults';
+import { PlaylistSidebar } from '@/components/music/PlaylistSidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Music2, Search, Library, LogOut, Loader2 } from 'lucide-react';
+import { Music2, Search, LogOut, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Track } from '@/types/music';
 
@@ -14,11 +17,13 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
   const { search, getStreamUrl, loading: searchLoading, results } = useMusicSearch();
+  const queue = useQueue();
+  const { toggleFavorite, isFavorite } = useFavorites();
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSidebar, setShowSidebar] = useState(true);
   
   // Player state
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(75);
   const [progress, setProgress] = useState(0);
@@ -60,7 +65,7 @@ const Dashboard = () => {
     }
   };
 
-  const handlePlayTrack = async (track: Track) => {
+  const playTrack = async (track: Track) => {
     try {
       console.log('Playing track:', track);
       
@@ -70,7 +75,6 @@ const Dashboard = () => {
       
       // Load and play
       audioElement.src = streamUrl;
-      setCurrentTrack(track);
       
       await audioElement.play();
       setIsPlaying(true);
@@ -79,6 +83,11 @@ const Dashboard = () => {
       console.error('Playback error:', error);
       toast.error('Failed to play track');
     }
+  };
+
+  const handlePlayTrack = async (track: Track) => {
+    queue.playTrack(track, results);
+    await playTrack(track);
   };
 
   const handlePlayPause = () => {
@@ -90,12 +99,23 @@ const Dashboard = () => {
     setIsPlaying(!isPlaying);
   };
 
-  const handlePrevious = () => {
-    toast.info('Previous track (not implemented)');
+  const handlePrevious = async () => {
+    const prevTrack = queue.previous();
+    if (prevTrack) {
+      await playTrack(prevTrack);
+    } else {
+      toast.info('No previous track');
+    }
   };
 
-  const handleNext = () => {
-    toast.info('Next track (not implemented)');
+  const handleNext = async () => {
+    const nextTrack = queue.next();
+    if (nextTrack) {
+      await playTrack(nextTrack);
+    } else {
+      setIsPlaying(false);
+      audioElement.pause();
+    }
   };
 
   const handleProgressChange = (value: number) => {
@@ -103,12 +123,8 @@ const Dashboard = () => {
     setProgress(value);
   };
 
-  const handleAddToPlaylist = (track: Track) => {
-    toast.info(`Add "${track.title}" to playlist (coming soon)`);
-  };
-
-  const handleToggleFavorite = (track: Track) => {
-    toast.info(`Toggle favorite for "${track.title}" (coming soon)`);
+  const handleToggleFavorite = async (track: Track) => {
+    await toggleFavorite(track);
   };
 
   const handleSignOut = async () => {
@@ -125,7 +141,10 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero pb-32">
+    <div className="min-h-screen bg-gradient-hero pb-32 flex">
+      {showSidebar && <PlaylistSidebar />}
+      
+      <div className="flex-1 flex flex-col">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-lg sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
@@ -153,9 +172,6 @@ const Dashboard = () => {
             </form>
 
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon">
-                <Library className="h-5 w-5" />
-              </Button>
               <Button variant="ghost" size="icon" onClick={handleSignOut}>
                 <LogOut className="h-5 w-5" />
               </Button>
@@ -197,8 +213,8 @@ const Dashboard = () => {
             <SearchResults
               tracks={results}
               onPlayTrack={handlePlayTrack}
-              onAddToPlaylist={handleAddToPlaylist}
               onToggleFavorite={handleToggleFavorite}
+              isFavorite={isFavorite}
             />
           </div>
         )}
@@ -206,16 +222,23 @@ const Dashboard = () => {
 
       {/* Player Bar */}
       <PlayerBar
-        currentTrack={currentTrack}
+        currentTrack={queue.currentTrack}
         isPlaying={isPlaying}
         volume={volume}
         progress={progress}
+        shuffle={queue.shuffle}
+        repeat={queue.repeat}
+        isFavorite={queue.currentTrack ? isFavorite(queue.currentTrack.id) : false}
         onPlayPause={handlePlayPause}
         onPrevious={handlePrevious}
         onNext={handleNext}
         onVolumeChange={setVolume}
         onProgressChange={handleProgressChange}
+        onToggleShuffle={queue.toggleShuffle}
+        onToggleRepeat={queue.toggleRepeat}
+        onToggleFavorite={() => queue.currentTrack && handleToggleFavorite(queue.currentTrack)}
       />
+      </div>
     </div>
   );
 };
