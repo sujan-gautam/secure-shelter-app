@@ -9,7 +9,7 @@ export const useMusicSearch = () => {
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<Track[]>([]);
 
-  const search = async (query: string, sources: string[] = ['jamendo', 'fma', 'audius']) => {
+  const search = async (query: string, sources: string[] = ['jamendo', 'fma', 'audius', 'ytmusic']) => {
     if (!query.trim()) {
       setResults([]);
       return;

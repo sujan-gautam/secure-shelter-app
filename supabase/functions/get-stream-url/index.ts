@@ -66,8 +66,11 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music would require ytmusicapi service
-        throw new Error('YouTube Music streaming requires ytmusicapi service');
+        // YouTube Music - return watch URL
+        // Note: Direct audio extraction would require yt-dlp or similar service
+        // This returns a YouTube watch URL that can be opened in browser
+        streamUrl = `https://www.youtube.com/watch?v=${trackId}`;
+        break;
       }
 
       default:

@@ -69,7 +69,17 @@ const Dashboard = () => {
     try {
       console.log('Playing track:', track);
       
-      // Get stream URL
+      // Special handling for YouTube Music
+      if (track.source === 'ytmusic') {
+        // YouTube tracks can't be played directly in audio element
+        // Open in new tab instead
+        const youtubeUrl = `https://www.youtube.com/watch?v=${track.sourceTrackId}`;
+        window.open(youtubeUrl, '_blank');
+        toast.info(`Opening in YouTube: ${track.title}`);
+        return;
+      }
+      
+      // Get stream URL for other sources
       const streamUrl = await getStreamUrl(track.source, track.sourceTrackId);
       console.log('Stream URL:', streamUrl);
       
@@ -193,7 +203,7 @@ const Dashboard = () => {
             <Music2 className="h-24 w-24 mx-auto mb-6 text-primary opacity-50" />
             <h2 className="text-3xl font-bold mb-3">Welcome to OpenBeats</h2>
             <p className="text-muted-foreground text-lg mb-8">
-              Search for free music from Jamendo, Free Music Archive, and Audius
+              Search for free music from Jamendo, Free Music Archive, Audius, and YouTube Music
             </p>
           </div>
         )}

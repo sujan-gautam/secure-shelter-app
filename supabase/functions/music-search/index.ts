@@ -123,21 +123,78 @@ async function searchAudius(query: string, limit: number = 10): Promise<Track[]>
   }
 }
 
-// YouTube Music search (unofficial - using search scraping)
+// YouTube Music search using YouTube Data API v3
 async function searchYTMusic(query: string, limit: number = 10): Promise<Track[]> {
-  try {
-    // Using YouTube's standard API for music searches
-    // Note: This is a simplified version - production would use ytmusicapi
-    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query + ' music')}&sp=EgIQAQ%3D%3D`;
-    console.log('YT Music search would use:', url);
-    
-    // For MVP, returning empty - would need ytmusicapi microservice
-    console.log('YouTube Music integration requires ytmusicapi service');
+  const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY');
+  
+  if (!YOUTUBE_API_KEY) {
+    console.warn('YOUTUBE_API_KEY not configured');
     return [];
+  }
+
+  try {
+    // Search for music videos
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + ' music')}&type=video&videoCategoryId=10&maxResults=${limit}&key=${YOUTUBE_API_KEY}`;
+    console.log('Fetching from YouTube:', searchUrl.replace(YOUTUBE_API_KEY, 'API_KEY_HIDDEN'));
+    
+    const searchResponse = await fetch(searchUrl);
+    if (!searchResponse.ok) {
+      const errorText = await searchResponse.text();
+      console.error('YouTube search error:', searchResponse.status, errorText);
+      return [];
+    }
+    
+    const searchData = await searchResponse.json();
+    
+    if (!searchData.items || searchData.items.length === 0) {
+      console.log('No results from YouTube');
+      return [];
+    }
+
+    // Get video details for duration
+    const videoIds = searchData.items.map((item: any) => item.id.videoId).join(',');
+    const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds}&key=${YOUTUBE_API_KEY}`;
+    
+    const detailsResponse = await fetch(detailsUrl);
+    if (!detailsResponse.ok) {
+      console.error('YouTube details error:', detailsResponse.status);
+      return [];
+    }
+    
+    const detailsData = await detailsResponse.json();
+    
+    return detailsData.items.map((video: any) => {
+      const duration = parseYouTubeDuration(video.contentDetails.duration);
+      const snippet = video.snippet;
+      
+      return {
+        id: `ytmusic-${video.id}`,
+        source: 'ytmusic' as const,
+        sourceTrackId: video.id,
+        title: snippet.title,
+        artists: [snippet.channelTitle],
+        albumTitle: undefined,
+        durationSec: duration,
+        artworkUrl: snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url,
+        license: 'YouTube Standard License',
+      };
+    });
   } catch (error) {
     console.error('YouTube Music search error:', error);
     return [];
   }
+}
+
+// Parse YouTube duration format (PT1M30S -> 90 seconds)
+function parseYouTubeDuration(duration: string): number {
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
+  
+  const hours = parseInt(match[1] || '0');
+  const minutes = parseInt(match[2] || '0');
+  const seconds = parseInt(match[3] || '0');
+  
+  return hours * 3600 + minutes * 60 + seconds;
 }
 
 Deno.serve(async (req) => {
