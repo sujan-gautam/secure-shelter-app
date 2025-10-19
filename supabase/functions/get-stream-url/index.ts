@@ -59,11 +59,13 @@ Deno.serve(async (req) => {
         const hostsData = await hostsResponse.json();
         const apiHost = hostsData.data?.[0] || 'https://discoveryprovider.audius.co';
 
+        // Get track details including stream URL
         const response = await fetch(`${apiHost}/v1/tracks/${trackId}`);
         const data = await response.json();
         
-        if (data.data?.permalink) {
-          streamUrl = `https://audius.co${data.data.permalink}`;
+        if (data.data) {
+          // Construct the actual stream URL
+          streamUrl = `${apiHost}/v1/tracks/${trackId}/stream`;
         }
         break;
       }

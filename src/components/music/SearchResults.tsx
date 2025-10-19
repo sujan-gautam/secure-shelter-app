@@ -53,7 +53,8 @@ export const SearchResults = ({
                   alt={track.title}
                   className="w-full h-full object-cover rounded"
                   onError={(e) => {
-                    e.currentTarget.src = 'https://via.placeholder.com/64?text=🎵';
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full bg-muted rounded flex items-center justify-center text-2xl">🎵</div>';
                   }}
                 />
               ) : (
