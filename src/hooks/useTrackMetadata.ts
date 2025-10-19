@@ -5,12 +5,12 @@ export const useTrackMetadata = () => {
   const ensureTrackExists = async (track: Track): Promise<string> => {
     try {
       // Check if track already exists
-      const { data: existing } = await supabase
+      const { data: existing, error: fetchError } = await supabase
         .from('track_metadata')
         .select('id')
         .eq('source', track.source)
         .eq('source_track_id', track.sourceTrackId)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return existing.id;

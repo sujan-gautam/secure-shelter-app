@@ -124,6 +124,36 @@ export const usePlaylists = () => {
 
   useEffect(() => {
     fetchPlaylists();
+
+    // Set up real-time subscription for playlists
+    const channel = supabase
+      .channel('playlists-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'playlists'
+        },
+        (payload) => {
+          console.log('Playlist change:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            setPlaylists(prev => [payload.new as Playlist, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setPlaylists(prev => 
+              prev.map(p => p.id === payload.new.id ? payload.new as Playlist : p)
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setPlaylists(prev => prev.filter(p => p.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return {
