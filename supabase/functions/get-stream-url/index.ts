@@ -1,4 +1,7 @@
-import { corsHeaders } from '../_shared/cors.ts';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 const JAMENDO_CLIENT_ID = Deno.env.get('JAMENDO_CLIENT_ID');
 
