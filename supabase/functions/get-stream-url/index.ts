@@ -71,28 +71,37 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music - extract audio stream using ytdl
+        // YouTube Music - use Piped API for audio extraction
         try {
-          const ytdlResponse = await fetch(
-            `https://www.youtube.com/watch?v=${trackId}`
+          console.log(`Extracting YouTube audio via Piped API for: ${trackId}`);
+          
+          // Use Piped API to get stream info
+          const pipedResponse = await fetch(
+            `https://pipedapi.kavin.rocks/streams/${trackId}`
           );
           
-          // Use a public YouTube audio extraction API
-          const extractResponse = await fetch(
-            `https://vid.puffyan.us/latest_version?id=${trackId}&itag=251`
-          );
+          if (!pipedResponse.ok) {
+            throw new Error(`Piped API error: ${pipedResponse.status}`);
+          }
           
-          if (extractResponse.ok) {
-            const extractData = await extractResponse.json();
-            streamUrl = extractData.url || `https://invidious.snopyta.org/latest_version?id=${trackId}&itag=251`;
+          const pipedData = await pipedResponse.json();
+          
+          // Get the best quality audio stream
+          if (pipedData.audioStreams && pipedData.audioStreams.length > 0) {
+            // Sort by bitrate and get the best quality
+            const bestAudio = pipedData.audioStreams.sort((a: any, b: any) => 
+              (b.bitrate || 0) - (a.bitrate || 0)
+            )[0];
+            
+            streamUrl = bestAudio.url;
+            console.log(`YouTube audio URL extracted successfully via Piped`);
           } else {
-            // Fallback to Invidious API
-            streamUrl = `https://invidious.snopyta.org/latest_version?id=${trackId}&itag=251`;
+            throw new Error('No audio streams available from Piped');
           }
         } catch (err) {
           console.error('YouTube stream extraction error:', err);
-          // Last resort fallback
-          streamUrl = `https://invidious.snopyta.org/latest_version?id=${trackId}&itag=251`;
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+          throw new Error(`Failed to extract YouTube audio: ${errorMessage}`);
         }
         break;
       }
