@@ -81,22 +81,48 @@ const Dashboard = () => {
         await trackPlay(queue.currentTrack, durationPlayed);
       }
       
-      // Special handling for YouTube Music
-      if (track.source === 'ytmusic') {
-        // YouTube tracks can't be played directly in audio element
-        // Open in new tab instead
-        const youtubeUrl = `https://www.youtube.com/watch?v=${track.sourceTrackId}`;
-        window.open(youtubeUrl, '_blank');
-        toast.info(`Opening in YouTube: ${track.title}`);
-        return;
-      }
-      
-      // Get stream URL for other sources
+      // Get stream URL for all sources including YouTube Music
       const streamUrl = await getStreamUrl(track.source, track.sourceTrackId);
       console.log('Stream URL:', streamUrl);
       
       // Load and play
       audioElement.src = streamUrl;
+      
+      // Update Media Session API for background playback
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: track.title,
+          artist: track.artists.join(', '),
+          album: track.albumTitle || 'Unknown Album',
+          artwork: track.artworkUrl ? [
+            { src: track.artworkUrl, sizes: '512x512', type: 'image/jpeg' }
+          ] : []
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => {
+          audioElement.play();
+          setIsPlaying(true);
+        });
+
+        navigator.mediaSession.setActionHandler('pause', () => {
+          audioElement.pause();
+          setIsPlaying(false);
+        });
+
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+          handlePrevious();
+        });
+
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+          handleNext();
+        });
+
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+          if (details.seekTime) {
+            audioElement.currentTime = details.seekTime;
+          }
+        });
+      }
       
       await audioElement.play();
       setIsPlaying(true);

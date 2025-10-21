@@ -71,10 +71,29 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music - return watch URL
-        // Note: Direct audio extraction would require yt-dlp or similar service
-        // This returns a YouTube watch URL that can be opened in browser
-        streamUrl = `https://www.youtube.com/watch?v=${trackId}`;
+        // YouTube Music - extract audio stream using ytdl
+        try {
+          const ytdlResponse = await fetch(
+            `https://www.youtube.com/watch?v=${trackId}`
+          );
+          
+          // Use a public YouTube audio extraction API
+          const extractResponse = await fetch(
+            `https://vid.puffyan.us/latest_version?id=${trackId}&itag=251`
+          );
+          
+          if (extractResponse.ok) {
+            const extractData = await extractResponse.json();
+            streamUrl = extractData.url || `https://invidious.snopyta.org/latest_version?id=${trackId}&itag=251`;
+          } else {
+            // Fallback to Invidious API
+            streamUrl = `https://invidious.snopyta.org/latest_version?id=${trackId}&itag=251`;
+          }
+        } catch (err) {
+          console.error('YouTube stream extraction error:', err);
+          // Last resort fallback
+          streamUrl = `https://invidious.snopyta.org/latest_version?id=${trackId}&itag=251`;
+        }
         break;
       }
 
