@@ -1,15 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useMusicSearch } from '@/hooks/useMusicSearch';
 import { useQueue } from '@/hooks/useQueue';
 import { useFavorites } from '@/hooks/useFavorites';
+import { useListeningHistory } from '@/hooks/useListeningHistory';
 import { PlayerBar } from '@/components/player/PlayerBar';
 import { SearchResults } from '@/components/music/SearchResults';
 import { PlaylistSidebar } from '@/components/music/PlaylistSidebar';
+import { ActivityDashboard } from '@/components/analytics/ActivityDashboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Music2, Search, LogOut, Loader2 } from 'lucide-react';
+import { Music2, Search, LogOut, Loader2, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Track } from '@/types/music';
 
@@ -19,9 +21,12 @@ const Dashboard = () => {
   const { search, getStreamUrl, loading: searchLoading, results } = useMusicSearch();
   const queue = useQueue();
   const { toggleFavorite, isFavorite } = useFavorites();
+  const { trackPlay } = useListeningHistory();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
+  const [showDashboard, setShowDashboard] = useState(true);
+  const playStartTimeRef = useRef<number>(0);
   
   // Player state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -61,6 +66,7 @@ const Dashboard = () => {
     e.preventDefault();
     if (searchQuery.trim()) {
       console.log('Searching for:', searchQuery);
+      setShowDashboard(false);
       await search(searchQuery);
     }
   };
@@ -68,6 +74,12 @@ const Dashboard = () => {
   const playTrack = async (track: Track) => {
     try {
       console.log('Playing track:', track);
+      
+      // Track listening duration of previous track
+      if (queue.currentTrack && playStartTimeRef.current > 0) {
+        const durationPlayed = Math.floor(audioElement.currentTime);
+        await trackPlay(queue.currentTrack, durationPlayed);
+      }
       
       // Special handling for YouTube Music
       if (track.source === 'ytmusic') {
@@ -88,6 +100,7 @@ const Dashboard = () => {
       
       await audioElement.play();
       setIsPlaying(true);
+      playStartTimeRef.current = Date.now();
       toast.success(`Now playing: ${track.title}`);
     } catch (error) {
       console.error('Playback error:', error);
@@ -96,6 +109,7 @@ const Dashboard = () => {
   };
 
   const handlePlayTrack = async (track: Track) => {
+    setShowDashboard(false);
     queue.playTrack(track, results);
     await playTrack(track);
   };
@@ -182,6 +196,13 @@ const Dashboard = () => {
             </form>
 
             <div className="flex items-center gap-2">
+              <Button 
+                variant={showDashboard ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setShowDashboard(true)}
+              >
+                <BarChart3 className="h-5 w-5" />
+              </Button>
               <Button variant="ghost" size="icon" onClick={handleSignOut}>
                 <LogOut className="h-5 w-5" />
               </Button>
@@ -198,23 +219,21 @@ const Dashboard = () => {
           </div>
         )}
 
-        {!searchLoading && results.length === 0 && !searchQuery && (
-          <div className="text-center py-20">
-            <Music2 className="h-24 w-24 mx-auto mb-6 text-primary opacity-50" />
-            <h2 className="text-3xl font-bold mb-3">Welcome to OpenBeats</h2>
-            <p className="text-muted-foreground text-lg mb-8">
-              Search for free music from Jamendo, Free Music Archive, Audius, and YouTube Music
-            </p>
-          </div>
+        {showDashboard && !searchLoading && (
+          <ActivityDashboard
+            onPlayTrack={handlePlayTrack}
+            onToggleFavorite={handleToggleFavorite}
+            isFavorite={isFavorite}
+          />
         )}
 
-        {!searchLoading && results.length === 0 && searchQuery && (
+        {!showDashboard && !searchLoading && results.length === 0 && searchQuery && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">No results found for "{searchQuery}"</p>
           </div>
         )}
 
-        {results.length > 0 && (
+        {!showDashboard && results.length > 0 && (
           <div>
             <div className="mb-6">
               <h2 className="text-2xl font-bold mb-2">Search Results</h2>
