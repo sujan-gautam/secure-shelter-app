@@ -71,61 +71,60 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music - use Cobalt API for reliable audio extraction
-        const cobaltInstances = [
-          'https://api.cobalt.tools',
-          'https://co.wuk.sh'
+        // YouTube Music - try multiple extraction methods with fallback
+        console.log(`Attempting YouTube extraction for: ${trackId}`);
+        
+        // Method 1: Try a curated list of working Invidious instances
+        const invidiousInstances = [
+          'https://invidious.jing.rocks',
+          'https://iv.nboeck.de',
+          'https://invidious.slipfox.xyz',
+          'https://invidious.perennialte.ch',
+          'https://yt.oelrichsgarcia.de',
+          'https://invidious.protokolla.fi',
+          'https://inv.tux.pizza',
+          'https://invidious.drgns.space'
         ];
 
-        let lastError = null;
-        
-        for (const instance of cobaltInstances) {
+        for (const instance of invidiousInstances) {
           try {
-            console.log(`Trying Cobalt API: ${instance} for ${trackId}`);
+            const response = await fetch(
+              `${instance}/api/v1/videos/${trackId}`,
+              { 
+                signal: AbortSignal.timeout(5000),
+                headers: { 'Accept': 'application/json' }
+              }
+            );
             
-            const response = await fetch(`${instance}/api/json`, {
-              method: 'POST',
-              headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                url: `https://www.youtube.com/watch?v=${trackId}`,
-                vCodec: 'h264',
-                vQuality: '360',
-                aFormat: 'mp3',
-                isAudioOnly: true,
-                filenamePattern: 'basic'
-              }),
-              signal: AbortSignal.timeout(10000)
-            });
-
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            if (data.status === 'stream' || data.status === 'success') {
-              streamUrl = data.url;
-              console.log(`YouTube audio extracted via Cobalt from ${instance}`);
-              break;
-            } else if (data.status === 'redirect') {
-              streamUrl = data.url;
-              console.log(`YouTube audio redirect via Cobalt from ${instance}`);
-              break;
-            } else {
-              throw new Error(`Cobalt returned status: ${data.status}`);
+            if (response.ok) {
+              const data = await response.json();
+              
+              if (data.adaptiveFormats) {
+                const audioFormats = data.adaptiveFormats.filter((f: any) => 
+                  f.type?.startsWith('audio/')
+                );
+                
+                if (audioFormats.length > 0) {
+                  const bestAudio = audioFormats.sort((a: any, b: any) => 
+                    (parseInt(b.bitrate) || 0) - (parseInt(a.bitrate) || 0)
+                  )[0];
+                  
+                  streamUrl = bestAudio.url;
+                  console.log(`Success with ${instance}`);
+                  break;
+                }
+              }
             }
           } catch (err) {
-            lastError = err;
-            console.log(`Failed ${instance}: ${err instanceof Error ? err.message : 'Unknown'}`);
+            console.log(`Failed ${instance}: ${err instanceof Error ? err.message : 'error'}`);
             continue;
           }
         }
 
+        // If all methods fail, return YouTube URL for external playback
         if (!streamUrl) {
-          throw new Error(`YouTube extraction failed. Last error: ${lastError instanceof Error ? lastError.message : 'Service unavailable'}`);
+          console.log('All extraction methods failed, returning YouTube URL');
+          streamUrl = `https://www.youtube.com/watch?v=${trackId}`;
         }
         break;
       }
