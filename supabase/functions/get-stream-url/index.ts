@@ -71,50 +71,62 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music - use Piped API with fallbacks
-        const pipedInstances = [
-          'https://pipedapi.kavin.rocks',
-          'https://pipedapi.tokhmi.xyz',
-          'https://api-piped.mha.fi',
-          'https://pipedapi.adminforge.de',
-          'https://api.piped.privacydev.net'
+        // YouTube Music - use Invidious API for reliable audio extraction
+        const invidiousInstances = [
+          'https://inv.nadeko.net',
+          'https://invidious.nerdvpn.de',
+          'https://vid.puffyan.us',
+          'https://invidious.privacydev.net',
+          'https://yt.artemislena.eu'
         ];
 
         let lastError = null;
         
-        for (const instance of pipedInstances) {
+        for (const instance of invidiousInstances) {
           try {
-            console.log(`Trying Piped instance: ${instance} for ${trackId}`);
+            console.log(`Trying Invidious: ${instance} for ${trackId}`);
             
-            const pipedResponse = await fetch(
-              `${instance}/streams/${trackId}`,
-              { signal: AbortSignal.timeout(5000) }
+            // Get video info from Invidious
+            const response = await fetch(
+              `${instance}/api/v1/videos/${trackId}`,
+              { 
+                signal: AbortSignal.timeout(8000),
+                headers: { 'Accept': 'application/json' }
+              }
             );
             
-            if (!pipedResponse.ok) {
-              throw new Error(`HTTP ${pipedResponse.status}`);
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
             }
             
-            const pipedData = await pipedResponse.json();
+            const data = await response.json();
             
-            if (pipedData.audioStreams && pipedData.audioStreams.length > 0) {
-              const bestAudio = pipedData.audioStreams.sort((a: any, b: any) => 
-                (b.bitrate || 0) - (a.bitrate || 0)
-              )[0];
+            // Get the best audio format (typically WEBM opus or M4A)
+            if (data.adaptiveFormats && data.adaptiveFormats.length > 0) {
+              const audioFormats = data.adaptiveFormats.filter((f: any) => 
+                f.type?.startsWith('audio/')
+              );
               
-              streamUrl = bestAudio.url;
-              console.log(`YouTube audio extracted from ${instance}`);
-              break;
+              if (audioFormats.length > 0) {
+                // Sort by bitrate and get best quality
+                const bestAudio = audioFormats.sort((a: any, b: any) => 
+                  (parseInt(b.bitrate) || 0) - (parseInt(a.bitrate) || 0)
+                )[0];
+                
+                streamUrl = bestAudio.url;
+                console.log(`YouTube audio extracted from ${instance}`);
+                break;
+              }
             }
           } catch (err) {
             lastError = err;
-            console.log(`Failed with ${instance}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+            console.log(`Failed ${instance}: ${err instanceof Error ? err.message : 'Unknown'}`);
             continue;
           }
         }
 
         if (!streamUrl) {
-          throw new Error(`All Piped instances failed. Last error: ${lastError instanceof Error ? lastError.message : 'Unknown'}`);
+          throw new Error(`YouTube extraction failed. Last error: ${lastError instanceof Error ? lastError.message : 'All instances unavailable'}`);
         }
         break;
       }
