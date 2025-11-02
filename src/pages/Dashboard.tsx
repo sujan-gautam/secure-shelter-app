@@ -81,16 +81,9 @@ const Dashboard = () => {
         await trackPlay(queue.currentTrack, durationPlayed);
       }
       
-      // Get stream URL for all sources including YouTube Music
+      // Get stream URL
       const streamUrl = await getStreamUrl(track.source, track.sourceTrackId);
       console.log('Stream URL:', streamUrl);
-      
-      // Check if extraction failed and we got a YouTube URL fallback
-      if (streamUrl.includes('youtube.com/watch')) {
-        toast.error('Direct playback unavailable. Opening in YouTube...');
-        window.open(streamUrl, '_blank');
-        return;
-      }
       
       // Load and play
       audioElement.src = streamUrl;

@@ -71,60 +71,70 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music - try multiple extraction methods with fallback
-        console.log(`Attempting YouTube extraction for: ${trackId}`);
+        // YouTube Music - use verified working Invidious instances with API enabled
+        console.log(`Extracting YouTube audio for: ${trackId}`);
         
-        // Method 1: Try a curated list of working Invidious instances
         const invidiousInstances = [
-          'https://invidious.jing.rocks',
-          'https://iv.nboeck.de',
-          'https://invidious.slipfox.xyz',
-          'https://invidious.perennialte.ch',
-          'https://yt.oelrichsgarcia.de',
-          'https://invidious.protokolla.fi',
-          'https://inv.tux.pizza',
-          'https://invidious.drgns.space'
+          'https://inv.perditum.com',  // CORS + API enabled
+          'https://yewtu.be',           // Popular, reliable
+          'https://invidious.nerdvpn.de',
+          'https://inv.nadeko.net',
+          'https://invidious.f5.si'
         ];
 
+        let lastError = '';
+        
         for (const instance of invidiousInstances) {
           try {
+            console.log(`Trying ${instance}`);
+            
             const response = await fetch(
               `${instance}/api/v1/videos/${trackId}`,
               { 
-                signal: AbortSignal.timeout(5000),
-                headers: { 'Accept': 'application/json' }
+                signal: AbortSignal.timeout(6000),
+                headers: { 
+                  'Accept': 'application/json',
+                  'User-Agent': 'OpenBeats/1.0'
+                }
               }
             );
             
-            if (response.ok) {
-              const data = await response.json();
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Get audio-only streams
+            if (data.adaptiveFormats && data.adaptiveFormats.length > 0) {
+              const audioStreams = data.adaptiveFormats.filter((f: any) => 
+                f.type && f.type.startsWith('audio/') && f.url
+              );
               
-              if (data.adaptiveFormats) {
-                const audioFormats = data.adaptiveFormats.filter((f: any) => 
-                  f.type?.startsWith('audio/')
-                );
+              if (audioStreams.length > 0) {
+                // Sort by bitrate to get best quality
+                const bestAudio = audioStreams.sort((a: any, b: any) => {
+                  const bitrateA = parseInt(a.bitrate) || 0;
+                  const bitrateB = parseInt(b.bitrate) || 0;
+                  return bitrateB - bitrateA;
+                })[0];
                 
-                if (audioFormats.length > 0) {
-                  const bestAudio = audioFormats.sort((a: any, b: any) => 
-                    (parseInt(b.bitrate) || 0) - (parseInt(a.bitrate) || 0)
-                  )[0];
-                  
-                  streamUrl = bestAudio.url;
-                  console.log(`Success with ${instance}`);
-                  break;
-                }
+                streamUrl = bestAudio.url;
+                console.log(`✓ Audio extracted from ${instance} (${bestAudio.type})`);
+                break;
               }
             }
+            
+            throw new Error('No audio streams found');
           } catch (err) {
-            console.log(`Failed ${instance}: ${err instanceof Error ? err.message : 'error'}`);
+            lastError = err instanceof Error ? err.message : 'Unknown error';
+            console.log(`✗ ${instance}: ${lastError}`);
             continue;
           }
         }
 
-        // If all methods fail, return YouTube URL for external playback
         if (!streamUrl) {
-          console.log('All extraction methods failed, returning YouTube URL');
-          streamUrl = `https://www.youtube.com/watch?v=${trackId}`;
+          throw new Error(`YouTube audio extraction failed: ${lastError}. All instances unavailable.`);
         }
         break;
       }
