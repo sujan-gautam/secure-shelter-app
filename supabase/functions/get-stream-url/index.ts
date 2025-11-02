@@ -71,52 +71,51 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music - use Invidious API for reliable audio extraction
-        const invidiousInstances = [
-          'https://inv.nadeko.net',
-          'https://invidious.nerdvpn.de',
-          'https://vid.puffyan.us',
-          'https://invidious.privacydev.net',
-          'https://yt.artemislena.eu'
+        // YouTube Music - use Cobalt API for reliable audio extraction
+        const cobaltInstances = [
+          'https://api.cobalt.tools',
+          'https://co.wuk.sh'
         ];
 
         let lastError = null;
         
-        for (const instance of invidiousInstances) {
+        for (const instance of cobaltInstances) {
           try {
-            console.log(`Trying Invidious: ${instance} for ${trackId}`);
+            console.log(`Trying Cobalt API: ${instance} for ${trackId}`);
             
-            // Get video info from Invidious
-            const response = await fetch(
-              `${instance}/api/v1/videos/${trackId}`,
-              { 
-                signal: AbortSignal.timeout(8000),
-                headers: { 'Accept': 'application/json' }
-              }
-            );
-            
+            const response = await fetch(`${instance}/api/json`, {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                url: `https://www.youtube.com/watch?v=${trackId}`,
+                vCodec: 'h264',
+                vQuality: '360',
+                aFormat: 'mp3',
+                isAudioOnly: true,
+                filenamePattern: 'basic'
+              }),
+              signal: AbortSignal.timeout(10000)
+            });
+
             if (!response.ok) {
               throw new Error(`HTTP ${response.status}`);
             }
-            
+
             const data = await response.json();
             
-            // Get the best audio format (typically WEBM opus or M4A)
-            if (data.adaptiveFormats && data.adaptiveFormats.length > 0) {
-              const audioFormats = data.adaptiveFormats.filter((f: any) => 
-                f.type?.startsWith('audio/')
-              );
-              
-              if (audioFormats.length > 0) {
-                // Sort by bitrate and get best quality
-                const bestAudio = audioFormats.sort((a: any, b: any) => 
-                  (parseInt(b.bitrate) || 0) - (parseInt(a.bitrate) || 0)
-                )[0];
-                
-                streamUrl = bestAudio.url;
-                console.log(`YouTube audio extracted from ${instance}`);
-                break;
-              }
+            if (data.status === 'stream' || data.status === 'success') {
+              streamUrl = data.url;
+              console.log(`YouTube audio extracted via Cobalt from ${instance}`);
+              break;
+            } else if (data.status === 'redirect') {
+              streamUrl = data.url;
+              console.log(`YouTube audio redirect via Cobalt from ${instance}`);
+              break;
+            } else {
+              throw new Error(`Cobalt returned status: ${data.status}`);
             }
           } catch (err) {
             lastError = err;
@@ -126,7 +125,7 @@ Deno.serve(async (req) => {
         }
 
         if (!streamUrl) {
-          throw new Error(`YouTube extraction failed. Last error: ${lastError instanceof Error ? lastError.message : 'All instances unavailable'}`);
+          throw new Error(`YouTube extraction failed. Last error: ${lastError instanceof Error ? lastError.message : 'Service unavailable'}`);
         }
         break;
       }
