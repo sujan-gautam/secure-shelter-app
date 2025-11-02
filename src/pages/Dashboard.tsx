@@ -9,9 +9,10 @@ import { PlayerBar } from '@/components/player/PlayerBar';
 import { SearchResults } from '@/components/music/SearchResults';
 import { PlaylistSidebar } from '@/components/music/PlaylistSidebar';
 import { ActivityDashboard } from '@/components/analytics/ActivityDashboard';
+import { HomePage } from '@/components/home/HomePage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Music2, Search, LogOut, Loader2, BarChart3 } from 'lucide-react';
+import { Music2, Search, LogOut, Loader2, BarChart3, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import { Track } from '@/types/music';
 
@@ -25,7 +26,8 @@ const Dashboard = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
-  const [showDashboard, setShowDashboard] = useState(true);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [showHome, setShowHome] = useState(true);
   const playStartTimeRef = useRef<number>(0);
   
   // Player state
@@ -68,9 +70,17 @@ const Dashboard = () => {
     if (searchTerm.trim()) {
       console.log('Searching for:', searchTerm);
       setShowDashboard(false);
+      setShowHome(false);
       setSearchQuery(searchTerm);
       await search(searchTerm);
     }
+  };
+
+  const handleSearchFromHome = async (query: string) => {
+    setSearchQuery(query);
+    setShowDashboard(false);
+    setShowHome(false);
+    await search(query);
   };
 
   const handleArtistClick = (artist: string) => {
@@ -229,9 +239,24 @@ const Dashboard = () => {
 
             <div className="flex items-center gap-2">
               <Button 
+                variant={showHome ? "default" : "ghost"}
+                size="icon"
+                onClick={() => {
+                  setShowHome(true);
+                  setShowDashboard(false);
+                }}
+                title="Home"
+              >
+                <Home className="h-5 w-5" />
+              </Button>
+              <Button 
                 variant={showDashboard ? "default" : "ghost"}
                 size="icon"
-                onClick={() => setShowDashboard(true)}
+                onClick={() => {
+                  setShowDashboard(true);
+                  setShowHome(false);
+                }}
+                title="Analytics"
               >
                 <BarChart3 className="h-5 w-5" />
               </Button>
@@ -251,6 +276,15 @@ const Dashboard = () => {
           </div>
         )}
 
+        {showHome && !searchLoading && !results.length && (
+          <HomePage
+            onPlayTrack={handlePlayTrack}
+            onToggleFavorite={handleToggleFavorite}
+            isFavorite={isFavorite}
+            onSearch={handleSearchFromHome}
+          />
+        )}
+
         {showDashboard && !searchLoading && (
           <ActivityDashboard
             onPlayTrack={handlePlayTrack}
@@ -260,25 +294,23 @@ const Dashboard = () => {
           />
         )}
 
-        {!showDashboard && !searchLoading && results.length === 0 && searchQuery && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No results found for "{searchQuery}"</p>
+        {!showDashboard && !showHome && !searchLoading && results.length === 0 && searchQuery && (
+          <div className="text-center py-20">
+            <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-xl font-semibold mb-2">No results found</h3>
+            <p className="text-muted-foreground">
+              Try searching for something else
+            </p>
           </div>
         )}
 
-        {!showDashboard && results.length > 0 && (
-          <div>
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-2">Search Results</h2>
-              <p className="text-muted-foreground">Found {results.length} tracks</p>
-            </div>
-            <SearchResults
-              tracks={results}
-              onPlayTrack={handlePlayTrack}
-              onToggleFavorite={handleToggleFavorite}
-              isFavorite={isFavorite}
-            />
-          </div>
+        {results.length > 0 && (
+          <SearchResults
+            tracks={results}
+            onPlayTrack={handlePlayTrack}
+            onToggleFavorite={handleToggleFavorite}
+            isFavorite={isFavorite}
+          />
         )}
       </main>
 
