@@ -71,37 +71,50 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music - use Piped API for audio extraction
-        try {
-          console.log(`Extracting YouTube audio via Piped API for: ${trackId}`);
-          
-          // Use Piped API to get stream info
-          const pipedResponse = await fetch(
-            `https://pipedapi.kavin.rocks/streams/${trackId}`
-          );
-          
-          if (!pipedResponse.ok) {
-            throw new Error(`Piped API error: ${pipedResponse.status}`);
-          }
-          
-          const pipedData = await pipedResponse.json();
-          
-          // Get the best quality audio stream
-          if (pipedData.audioStreams && pipedData.audioStreams.length > 0) {
-            // Sort by bitrate and get the best quality
-            const bestAudio = pipedData.audioStreams.sort((a: any, b: any) => 
-              (b.bitrate || 0) - (a.bitrate || 0)
-            )[0];
+        // YouTube Music - use Piped API with fallbacks
+        const pipedInstances = [
+          'https://pipedapi.kavin.rocks',
+          'https://pipedapi.tokhmi.xyz',
+          'https://api-piped.mha.fi',
+          'https://pipedapi.adminforge.de',
+          'https://api.piped.privacydev.net'
+        ];
+
+        let lastError = null;
+        
+        for (const instance of pipedInstances) {
+          try {
+            console.log(`Trying Piped instance: ${instance} for ${trackId}`);
             
-            streamUrl = bestAudio.url;
-            console.log(`YouTube audio URL extracted successfully via Piped`);
-          } else {
-            throw new Error('No audio streams available from Piped');
+            const pipedResponse = await fetch(
+              `${instance}/streams/${trackId}`,
+              { signal: AbortSignal.timeout(5000) }
+            );
+            
+            if (!pipedResponse.ok) {
+              throw new Error(`HTTP ${pipedResponse.status}`);
+            }
+            
+            const pipedData = await pipedResponse.json();
+            
+            if (pipedData.audioStreams && pipedData.audioStreams.length > 0) {
+              const bestAudio = pipedData.audioStreams.sort((a: any, b: any) => 
+                (b.bitrate || 0) - (a.bitrate || 0)
+              )[0];
+              
+              streamUrl = bestAudio.url;
+              console.log(`YouTube audio extracted from ${instance}`);
+              break;
+            }
+          } catch (err) {
+            lastError = err;
+            console.log(`Failed with ${instance}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+            continue;
           }
-        } catch (err) {
-          console.error('YouTube stream extraction error:', err);
-          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-          throw new Error(`Failed to extract YouTube audio: ${errorMessage}`);
+        }
+
+        if (!streamUrl) {
+          throw new Error(`All Piped instances failed. Last error: ${lastError instanceof Error ? lastError.message : 'Unknown'}`);
         }
         break;
       }
