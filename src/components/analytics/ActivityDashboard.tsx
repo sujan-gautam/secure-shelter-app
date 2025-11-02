@@ -10,12 +10,14 @@ interface ActivityDashboardProps {
   onPlayTrack: (track: Track) => void;
   onToggleFavorite: (track: Track) => void;
   isFavorite: (trackId: string) => boolean;
+  onArtistClick?: (artist: string) => void;
 }
 
 export const ActivityDashboard = ({
   onPlayTrack,
   onToggleFavorite,
   isFavorite,
+  onArtistClick,
 }: ActivityDashboardProps) => {
   const { stats, loading: statsLoading } = useAnalytics();
   const { recommendations, loading: recsLoading } = useRecommendations();
@@ -54,7 +56,11 @@ export const ActivityDashboard = ({
       </TabsList>
 
       <TabsContent value="stats">
-        <ListeningStats stats={stats} />
+        <ListeningStats 
+          stats={stats} 
+          onPlayTrack={onPlayTrack}
+          onArtistClick={onArtistClick}
+        />
       </TabsContent>
 
       <TabsContent value="recommendations">

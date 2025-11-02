@@ -1,8 +1,10 @@
 import { Track } from '@/types/music';
 import { Button } from '@/components/ui/button';
-import { Play, Heart } from 'lucide-react';
+import { Play, Heart, Music2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { PlaylistDialog } from './PlaylistDialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from 'react';
 
 interface SearchResultsProps {
   tracks: Track[];
@@ -17,6 +19,8 @@ export const SearchResults = ({
   onToggleFavorite,
   isFavorite
 }: SearchResultsProps) => {
+  const [activeTab, setActiveTab] = useState('all');
+
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -33,13 +37,28 @@ export const SearchResults = ({
     }
   };
 
+  const getSourceLabel = (source: string) => {
+    switch (source) {
+      case 'jamendo': return { icon: '🎸', name: 'Jamendo' };
+      case 'fma': return { icon: '🎹', name: 'FMA' };
+      case 'audius': return { icon: '🎧', name: 'Audius' };
+      case 'ytmusic': return { icon: '▶️', name: 'YouTube Music' };
+      default: return { icon: '🎵', name: source };
+    }
+  };
+
   if (tracks.length === 0) {
     return null;
   }
 
-  return (
+  const sources = Array.from(new Set(tracks.map(t => t.source)));
+  const filteredTracks = activeTab === 'all' 
+    ? tracks 
+    : tracks.filter(t => t.source === activeTab);
+
+  const renderTrackList = (trackList: Track[]) => (
     <div className="space-y-2">
-      {tracks.map((track) => (
+      {trackList.map((track) => (
         <div
           key={track.id}
           className="group bg-card/30 backdrop-blur-sm border border-border/50 rounded-lg p-4 hover:bg-card/50 hover:border-primary/30 transition-all"
@@ -114,5 +133,41 @@ export const SearchResults = ({
         </div>
       ))}
     </div>
+  );
+
+  return (
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Music2 className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-bold">
+            {filteredTracks.length} {filteredTracks.length === 1 ? 'Track' : 'Tracks'}
+          </h2>
+        </div>
+        
+        <TabsList className="bg-card/50 border border-border/50">
+          <TabsTrigger value="all" className="data-[state=active]:bg-primary/20">
+            All Sources
+          </TabsTrigger>
+          {sources.map(source => {
+            const { icon, name } = getSourceLabel(source);
+            return (
+              <TabsTrigger 
+                key={source} 
+                value={source}
+                className="data-[state=active]:bg-primary/20"
+              >
+                <span className="mr-1">{icon}</span>
+                {name}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+      </div>
+
+      <TabsContent value={activeTab} className="mt-0">
+        {renderTrackList(filteredTracks)}
+      </TabsContent>
+    </Tabs>
   );
 };

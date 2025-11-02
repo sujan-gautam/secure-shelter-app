@@ -1,12 +1,15 @@
 import { Card } from '@/components/ui/card';
-import { Music2, Clock, TrendingUp, Headphones } from 'lucide-react';
+import { Music2, Clock, TrendingUp, Headphones, Play } from 'lucide-react';
 import { ListeningStats as Stats } from '@/hooks/useAnalytics';
+import { Button } from '@/components/ui/button';
 
 interface ListeningStatsProps {
   stats: Stats;
+  onPlayTrack?: (trackData: any) => void;
+  onArtistClick?: (artist: string) => void;
 }
 
-export const ListeningStats = ({ stats }: ListeningStatsProps) => {
+export const ListeningStats = ({ stats, onPlayTrack, onArtistClick }: ListeningStatsProps) => {
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -80,17 +83,23 @@ export const ListeningStats = ({ stats }: ListeningStatsProps) => {
         </h3>
         <div className="space-y-3">
           {stats.topArtists.slice(0, 5).map((artist, index) => (
-            <div key={artist.artist} className="flex items-center justify-between">
+            <button
+              key={artist.artist}
+              onClick={() => onArtistClick?.(artist.artist)}
+              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-primary/10 transition-colors group cursor-pointer"
+            >
               <div className="flex items-center gap-3">
                 <span className="text-2xl font-bold text-muted-foreground/50 w-8">
                   {index + 1}
                 </span>
-                <span className="font-medium">{artist.artist}</span>
+                <span className="font-medium group-hover:text-primary transition-colors">
+                  {artist.artist}
+                </span>
               </div>
               <span className="text-sm text-muted-foreground">
                 {artist.plays} plays
               </span>
-            </div>
+            </button>
           ))}
         </div>
       </Card>
@@ -101,25 +110,40 @@ export const ListeningStats = ({ stats }: ListeningStatsProps) => {
           <Music2 className="h-5 w-5 text-primary" />
           Most Played Tracks
         </h3>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {stats.topTracks.slice(0, 5).map((track, index) => (
-            <div key={track.trackId} className="flex items-center gap-4">
+            <div 
+              key={track.trackId} 
+              className="group flex items-center gap-4 p-3 rounded-lg hover:bg-primary/10 transition-colors"
+            >
               <span className="text-2xl font-bold text-muted-foreground/50 w-8">
                 {index + 1}
               </span>
-              {track.artworkUrl ? (
-                <img
-                  src={track.artworkUrl}
-                  alt={track.title}
-                  className="w-12 h-12 rounded-lg object-cover"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                  <Music2 className="h-6 w-6 text-muted-foreground" />
-                </div>
-              )}
+              <div className="relative">
+                {track.artworkUrl ? (
+                  <img
+                    src={track.artworkUrl}
+                    alt={track.title}
+                    className="w-12 h-12 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+                    <Music2 className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                {onPlayTrack && (
+                  <button
+                    onClick={() => onPlayTrack(track)}
+                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center"
+                  >
+                    <Play className="h-5 w-5 text-white" />
+                  </button>
+                )}
+              </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{track.title}</p>
+                <p className="font-medium truncate group-hover:text-primary transition-colors">
+                  {track.title}
+                </p>
                 <p className="text-sm text-muted-foreground truncate">
                   {track.artists.join(', ')}
                 </p>

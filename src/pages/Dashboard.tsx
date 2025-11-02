@@ -62,13 +62,19 @@ const Dashboard = () => {
     audioElement.volume = volume / 100;
   }, [volume]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      console.log('Searching for:', searchQuery);
+  const handleSearch = async (e?: React.FormEvent, query?: string) => {
+    if (e) e.preventDefault();
+    const searchTerm = query || searchQuery;
+    if (searchTerm.trim()) {
+      console.log('Searching for:', searchTerm);
       setShowDashboard(false);
-      await search(searchQuery);
+      setSearchQuery(searchTerm);
+      await search(searchTerm);
     }
+  };
+
+  const handleArtistClick = (artist: string) => {
+    handleSearch(undefined, artist);
   };
 
   const playTrack = async (track: Track) => {
@@ -248,6 +254,7 @@ const Dashboard = () => {
         {showDashboard && !searchLoading && (
           <ActivityDashboard
             onPlayTrack={handlePlayTrack}
+            onArtistClick={handleArtistClick}
             onToggleFavorite={handleToggleFavorite}
             isFavorite={isFavorite}
           />
