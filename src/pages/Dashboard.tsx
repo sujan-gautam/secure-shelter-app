@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useMusicSearch } from '@/hooks/useMusicSearch';
@@ -17,6 +17,8 @@ import { Music2, Search, LogOut, Loader2, BarChart3, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import { Track } from '@/types/music';
 
+type DashboardView = 'home' | 'search' | 'analytics' | 'playlist';
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
@@ -24,19 +26,21 @@ const Dashboard = () => {
   const queue = useQueue();
   const { toggleFavorite, isFavorite } = useFavorites();
   const { trackPlay } = useListeningHistory();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSidebar, setShowSidebar] = useState(true);
-  const [showDashboard, setShowDashboard] = useState(false);
-  const [showHome, setShowHome] = useState(true);
-  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
+  const [showSidebar] = useState(true);
+  const [view, setView] = useState<DashboardView>('home');
+  const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null);
   const playStartTimeRef = useRef<number>(0);
-  
+  const lastTrackRef = useRef<Track | null>(null);
+
   // Player state
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(75);
   const [progress, setProgress] = useState(0);
-  const [audioElement] = useState<HTMLAudioElement>(new Audio());
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const handleNextRef = useRef<() => void>(() => {});
+  const handlePreviousRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (!loading && !user) {
@@ -45,34 +49,148 @@ const Dashboard = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    // Setup audio element
-    audioElement.volume = volume / 100;
-    
-    audioElement.addEventListener('timeupdate', () => {
-      setProgress(audioElement.currentTime);
-    });
+    const audio = new Audio();
+    audio.volume = volume / 100;
 
-    audioElement.addEventListener('ended', () => {
+    const handleTimeUpdate = () => {
+      setProgress(audio.currentTime);
+    };
+
+    const handleEnded = () => {
       setIsPlaying(false);
-      handleNext();
-    });
+      handleNextRef.current();
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+
+    audioRef.current = audio;
 
     return () => {
-      audioElement.pause();
+      audio.pause();
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
     };
   }, []);
 
   useEffect(() => {
-    audioElement.volume = volume / 100;
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100;
+    }
   }, [volume]);
+
+  const updateMediaSession = useCallback((track: Track) => {
+    if (!('mediaSession' in navigator) || !navigator.mediaSession) {
+      return;
+    }
+
+    const mediaSession = navigator.mediaSession;
+
+    if (typeof window !== 'undefined' && 'MediaMetadata' in window) {
+      mediaSession.metadata = new window.MediaMetadata({
+        title: track.title,
+        artist: track.artists.join(', '),
+        album: track.albumTitle || 'Unknown Album',
+        artwork: track.artworkUrl
+          ? [
+              { src: track.artworkUrl, sizes: '512x512', type: 'image/jpeg' }
+            ]
+          : [],
+      });
+    }
+
+    const actionHandlers: Array<[
+      MediaSessionAction,
+      MediaSessionActionHandler
+    ]> = [
+      [
+        'play',
+        () => {
+          const audio = audioRef.current;
+          if (audio) {
+            void audio.play();
+            setIsPlaying(true);
+          }
+        },
+      ],
+      [
+        'pause',
+        () => {
+          audioRef.current?.pause();
+          setIsPlaying(false);
+        },
+      ],
+      [
+        'previoustrack',
+        () => {
+          handlePreviousRef.current();
+        },
+      ],
+      [
+        'nexttrack',
+        () => {
+          handleNextRef.current();
+        },
+      ],
+      [
+        'seekto',
+        (details) => {
+          const audio = audioRef.current;
+          if (audio && details.seekTime !== undefined) {
+            audio.currentTime = details.seekTime;
+            setProgress(audio.currentTime);
+          }
+        },
+      ],
+    ];
+
+    actionHandlers.forEach(([action, handler]) => {
+      try {
+        mediaSession.setActionHandler(action, handler);
+      } catch (error) {
+        console.warn(`Failed to set media session action handler for ${action}`, error);
+      }
+    });
+  }, []);
+
+  const performPlay = useCallback(async (track: Track) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    try {
+      const previousTrack = lastTrackRef.current;
+      if (previousTrack && playStartTimeRef.current > 0) {
+        const durationPlayed = Math.floor(audio.currentTime);
+        await trackPlay(previousTrack, durationPlayed);
+      }
+
+      const streamUrl = await getStreamUrl(track.source, track.sourceTrackId);
+
+      if (audio.src !== streamUrl) {
+        audio.src = streamUrl;
+      }
+
+      audio.currentTime = 0;
+      await audio.play();
+      setIsPlaying(true);
+      setProgress(0);
+      playStartTimeRef.current = Date.now();
+      lastTrackRef.current = track;
+      updateMediaSession(track);
+      toast.success(`Now playing: ${track.title}`);
+    } catch (error) {
+      console.error('Playback error:', error);
+      toast.error('Failed to play track');
+    }
+  }, [getStreamUrl, trackPlay, updateMediaSession]);
 
   const handleSearch = async (e?: React.FormEvent, query?: string) => {
     if (e) e.preventDefault();
     const searchTerm = query || searchQuery;
     if (searchTerm.trim()) {
       console.log('Searching for:', searchTerm);
-      setShowDashboard(false);
-      setShowHome(false);
+      setActivePlaylistId(null);
+      setView('search');
       setSearchQuery(searchTerm);
       await search(searchTerm);
     }
@@ -80,136 +198,94 @@ const Dashboard = () => {
 
   const handleSearchFromHome = async (query: string) => {
     setSearchQuery(query);
-    setShowDashboard(false);
-    setShowHome(false);
+    setActivePlaylistId(null);
+    setView('search');
     await search(query);
   };
 
   const handleArtistClick = (artist: string) => {
-    handleSearch(undefined, artist);
-  };
-
-  const playTrack = async (track: Track) => {
-    try {
-      console.log('Playing track:', track);
-      
-      // Track listening duration of previous track
-      if (queue.currentTrack && playStartTimeRef.current > 0) {
-        const durationPlayed = Math.floor(audioElement.currentTime);
-        await trackPlay(queue.currentTrack, durationPlayed);
-      }
-      
-      // Get stream URL
-      const streamUrl = await getStreamUrl(track.source, track.sourceTrackId);
-      console.log('Stream URL:', streamUrl);
-      
-      // Load and play
-      audioElement.src = streamUrl;
-      
-      // Update Media Session API for background playback
-      if ('mediaSession' in navigator && navigator.mediaSession) {
-        const mediaSession = navigator.mediaSession;
-
-        if (typeof window !== 'undefined' && 'MediaMetadata' in window) {
-          mediaSession.metadata = new window.MediaMetadata({
-            title: track.title,
-            artist: track.artists.join(', '),
-            album: track.albumTitle || 'Unknown Album',
-            artwork: track.artworkUrl ? [
-              { src: track.artworkUrl, sizes: '512x512', type: 'image/jpeg' }
-            ] : []
-          });
-        }
-
-        const actionHandlers: Array<[
-          MediaSessionAction,
-          MediaSessionActionHandler
-        ]> = [
-          ['play', () => {
-            void audioElement.play();
-            setIsPlaying(true);
-          }],
-          ['pause', () => {
-            audioElement.pause();
-            setIsPlaying(false);
-          }],
-          ['previoustrack', () => {
-            void handlePrevious();
-          }],
-          ['nexttrack', () => {
-            void handleNext();
-          }],
-          ['seekto', (details) => {
-            if (details.seekTime !== undefined) {
-              audioElement.currentTime = details.seekTime;
-            }
-          }]
-        ];
-
-        actionHandlers.forEach(([action, handler]) => {
-          try {
-            mediaSession.setActionHandler(action, handler);
-          } catch (error) {
-            console.warn(`Failed to set media session action handler for ${action}`, error);
-          }
-        });
-      }
-      
-      await audioElement.play();
-      setIsPlaying(true);
-      playStartTimeRef.current = Date.now();
-      toast.success(`Now playing: ${track.title}`);
-    } catch (error) {
-      console.error('Playback error:', error);
-      toast.error('Failed to play track');
-    }
+    setSearchQuery(artist);
+    setActivePlaylistId(null);
+    setView('search');
+    void handleSearch(undefined, artist);
   };
 
   const handlePlayTrack = async (track: Track, trackQueue?: Track[]) => {
-    setShowDashboard(false);
-    setShowHome(false);
-    queue.playTrack(track, trackQueue || results);
-    await playTrack(track);
+    let queueSource: Track[] = trackQueue && trackQueue.length ? trackQueue : [];
+
+    if (!queueSource.length) {
+      queueSource = results.some((result) => result.id === track.id)
+        ? results
+        : [track];
+    }
+
+    queue.playTrack(track, queueSource);
+    await performPlay(track);
   };
 
   const handlePlayTrackFromPlaylist = async (track: Track, playlistTracks: Track[]) => {
-    setShowDashboard(false);
-    setShowHome(false);
-    setSelectedPlaylistId(null);
     queue.playTrack(track, playlistTracks);
-    await playTrack(track);
+    await performPlay(track);
   };
 
   const handlePlayPause = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
     if (isPlaying) {
-      audioElement.pause();
+      audio.pause();
+      setIsPlaying(false);
     } else {
-      audioElement.play();
+      audio
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch((error) => {
+          console.error('Playback resume failed:', error);
+          toast.error('Unable to resume playback');
+        });
     }
-    setIsPlaying(!isPlaying);
   };
 
-  const handlePrevious = async () => {
+  const handlePrevious = useCallback(() => {
     const prevTrack = queue.previous();
     if (prevTrack) {
-      await playTrack(prevTrack);
+      void performPlay(prevTrack);
     } else {
       toast.info('No previous track');
     }
-  };
+  }, [queue, performPlay]);
 
-  const handleNext = async () => {
+  const handleNext = useCallback(() => {
     const nextTrack = queue.next();
     if (nextTrack) {
-      await playTrack(nextTrack);
+      void performPlay(nextTrack);
     } else {
       setIsPlaying(false);
-      audioElement.pause();
+      const audio = audioRef.current;
+      if (audio) {
+        if (lastTrackRef.current && playStartTimeRef.current > 0) {
+          const durationPlayed = Math.floor(audio.currentTime);
+          void trackPlay(lastTrackRef.current, durationPlayed);
+        }
+        audio.pause();
+        audio.currentTime = 0;
+      }
+      playStartTimeRef.current = 0;
     }
-  };
+  }, [queue, performPlay, trackPlay]);
+
+  useEffect(() => {
+    handleNextRef.current = handleNext;
+  }, [handleNext]);
+
+  useEffect(() => {
+    handlePreviousRef.current = handlePrevious;
+  }, [handlePrevious]);
 
   const handleProgressChange = (value: number) => {
-    audioElement.currentTime = value;
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.currentTime = value;
     setProgress(value);
   };
 
@@ -231,20 +307,19 @@ const Dashboard = () => {
   }
 
   const handlePlaylistSelect = (playlistId: string) => {
-    setSelectedPlaylistId(playlistId);
-    setShowDashboard(false);
-    setShowHome(false);
+    setActivePlaylistId(playlistId);
+    setView('playlist');
   };
 
   const handleBackFromPlaylist = () => {
-    setSelectedPlaylistId(null);
-    setShowHome(true);
+    setActivePlaylistId(null);
+    setView('home');
   };
 
   return (
     <div className="min-h-screen bg-gradient-hero pb-32 flex">
       {showSidebar && <PlaylistSidebar onPlaylistSelect={handlePlaylistSelect} />}
-      
+
       <div className="flex-1 flex flex-col">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-lg sticky top-0 z-40">
@@ -273,23 +348,23 @@ const Dashboard = () => {
             </form>
 
             <div className="flex items-center gap-2">
-              <Button 
-                variant={showHome ? "default" : "ghost"}
+              <Button
+                variant={view === 'home' ? "default" : "ghost"}
                 size="icon"
                 onClick={() => {
-                  setShowHome(true);
-                  setShowDashboard(false);
+                  setActivePlaylistId(null);
+                  setView('home');
                 }}
                 title="Home"
               >
                 <Home className="h-5 w-5" />
               </Button>
-              <Button 
-                variant={showDashboard ? "default" : "ghost"}
+              <Button
+                variant={view === 'analytics' ? "default" : "ghost"}
                 size="icon"
                 onClick={() => {
-                  setShowDashboard(true);
-                  setShowHome(false);
+                  setActivePlaylistId(null);
+                  setView('analytics');
                 }}
                 title="Analytics"
               >
@@ -305,55 +380,57 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {selectedPlaylistId ? (
+        {activePlaylistId && view === 'playlist' ? (
           <PlaylistDetailView
-            playlistId={selectedPlaylistId}
+            playlistId={activePlaylistId}
             onBack={handleBackFromPlaylist}
             onPlayTrack={handlePlayTrackFromPlaylist}
           />
         ) : (
           <>
-            {searchLoading && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            )}
-
-            {showHome && !searchLoading && !results.length && (
-          <HomePage
-            onPlayTrack={handlePlayTrack}
-            onToggleFavorite={handleToggleFavorite}
-            isFavorite={isFavorite}
-            onSearch={handleSearchFromHome}
-          />
-        )}
-
-        {showDashboard && !searchLoading && (
-          <ActivityDashboard
-            onPlayTrack={handlePlayTrack}
-            onArtistClick={handleArtistClick}
-            onToggleFavorite={handleToggleFavorite}
-            isFavorite={isFavorite}
-          />
-        )}
-
-        {!showDashboard && !showHome && !searchLoading && results.length === 0 && searchQuery && (
-          <div className="text-center py-20">
-            <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-xl font-semibold mb-2">No results found</h3>
-            <p className="text-muted-foreground">
-              Try searching for something else
-            </p>
-          </div>
-        )}
-
-            {results.length > 0 && (
-              <SearchResults
-                tracks={results}
+            {view === 'analytics' && (
+              <ActivityDashboard
                 onPlayTrack={handlePlayTrack}
+                onArtistClick={handleArtistClick}
                 onToggleFavorite={handleToggleFavorite}
                 isFavorite={isFavorite}
               />
+            )}
+
+            {view === 'home' && (
+              <HomePage
+                onPlayTrack={handlePlayTrack}
+                onToggleFavorite={handleToggleFavorite}
+                isFavorite={isFavorite}
+                onSearch={handleSearchFromHome}
+              />
+            )}
+
+            {view === 'search' && (
+              <>
+                {searchLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : results.length > 0 ? (
+                  <SearchResults
+                    tracks={results}
+                    onPlayTrack={handlePlayTrack}
+                    onToggleFavorite={handleToggleFavorite}
+                    isFavorite={isFavorite}
+                  />
+                ) : (
+                  searchQuery && (
+                    <div className="text-center py-20">
+                      <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="text-xl font-semibold mb-2">No results found</h3>
+                      <p className="text-muted-foreground">
+                        Try searching for something else
+                      </p>
+                    </div>
+                  )
+                )}
+              </>
             )}
           </>
         )}
