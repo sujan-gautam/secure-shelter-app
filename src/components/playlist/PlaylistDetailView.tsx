@@ -31,7 +31,7 @@ import {
 interface PlaylistDetailViewProps {
   playlistId: string;
   onBack: () => void;
-  onPlayTrack: (track: Track) => void;
+  onPlayTrack: (track: Track, playlistTracks: Track[]) => void;
 }
 
 interface PlaylistWithTracks {
@@ -164,6 +164,8 @@ export const PlaylistDetailView = ({
   };
 
   const handlePlayTrack = (trackData: any) => {
+    if (!playlist) return;
+    
     const track: Track = {
       id: trackData.id,
       source: trackData.source as any,
@@ -174,7 +176,20 @@ export const PlaylistDetailView = ({
       artworkUrl: trackData.artwork_url,
       albumTitle: trackData.album_title,
     };
-    onPlayTrack(track);
+    
+    // Convert all playlist tracks to Track objects for queue
+    const playlistTracks: Track[] = playlist.tracks.map(item => ({
+      id: item.track_metadata.id,
+      source: item.track_metadata.source as any,
+      sourceTrackId: item.track_metadata.source_track_id,
+      title: item.track_metadata.title,
+      artists: item.track_metadata.artists,
+      durationSec: item.track_metadata.duration_sec,
+      artworkUrl: item.track_metadata.artwork_url,
+      albumTitle: item.track_metadata.album_title,
+    }));
+    
+    onPlayTrack(track, playlistTracks);
   };
 
   const formatDuration = (seconds: number) => {

@@ -13,6 +13,20 @@ export const RecentlyPlayed = ({ onPlayTrack }: RecentlyPlayedProps) => {
   const [recentTracks, setRecentTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const handlePlayTrack = (trackData: any) => {
+    const track: Track = {
+      id: trackData.id,
+      source: trackData.source as any,
+      sourceTrackId: trackData.source_track_id,
+      title: trackData.title,
+      artists: trackData.artists,
+      durationSec: trackData.duration_sec,
+      artworkUrl: trackData.artwork_url,
+      albumTitle: trackData.album_title,
+    };
+    onPlayTrack(track);
+  };
+
   useEffect(() => {
     loadRecentlyPlayed();
   }, []);
@@ -82,7 +96,7 @@ export const RecentlyPlayed = ({ onPlayTrack }: RecentlyPlayedProps) => {
             <Card
               key={item.id}
               className="group relative overflow-hidden hover:shadow-glow-accent transition-all duration-300 cursor-pointer hover-scale bg-card/30 backdrop-blur-sm border-border/50"
-              onClick={() => onPlayTrack(track)}
+              onClick={() => handlePlayTrack(track)}
             >
               <div className="aspect-square relative">
                 {track.artwork_url ? (

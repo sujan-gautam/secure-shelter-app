@@ -12,6 +12,19 @@ interface TrendingNowProps {
 export const TrendingNow = ({ onPlayTrack }: TrendingNowProps) => {
   const { stats, loading } = useAnalytics();
 
+  const handlePlayTrack = (trackData: any) => {
+    const track: Track = {
+      id: trackData.trackId,
+      source: trackData.source as any,
+      sourceTrackId: trackData.sourceTrackId,
+      title: trackData.title,
+      artists: trackData.artists,
+      durationSec: trackData.durationSec,
+      artworkUrl: trackData.artworkUrl,
+    };
+    onPlayTrack(track);
+  };
+
   if (loading) {
     return (
       <section className="mb-12 animate-fade-in">
@@ -47,7 +60,7 @@ export const TrendingNow = ({ onPlayTrack }: TrendingNowProps) => {
           <Card
             key={track.trackId}
             className="group relative overflow-hidden hover:shadow-card-hover transition-all duration-300 cursor-pointer hover-scale bg-card/50 backdrop-blur-sm border-border/50"
-            onClick={() => onPlayTrack(track)}
+            onClick={() => handlePlayTrack(track)}
           >
             <div className="aspect-square relative">
               {track.artworkUrl ? (

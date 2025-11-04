@@ -152,9 +152,18 @@ const Dashboard = () => {
     }
   };
 
-  const handlePlayTrack = async (track: Track) => {
+  const handlePlayTrack = async (track: Track, trackQueue?: Track[]) => {
     setShowDashboard(false);
-    queue.playTrack(track, results);
+    setShowHome(false);
+    queue.playTrack(track, trackQueue || results);
+    await playTrack(track);
+  };
+
+  const handlePlayTrackFromPlaylist = async (track: Track, playlistTracks: Track[]) => {
+    setShowDashboard(false);
+    setShowHome(false);
+    setSelectedPlaylistId(null);
+    queue.playTrack(track, playlistTracks);
     await playTrack(track);
   };
 
@@ -287,7 +296,7 @@ const Dashboard = () => {
           <PlaylistDetailView
             playlistId={selectedPlaylistId}
             onBack={handleBackFromPlaylist}
-            onPlayTrack={handlePlayTrack}
+            onPlayTrack={handlePlayTrackFromPlaylist}
           />
         ) : (
           <>
