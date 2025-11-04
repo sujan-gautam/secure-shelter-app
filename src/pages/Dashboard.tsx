@@ -107,37 +107,50 @@ const Dashboard = () => {
       audioElement.src = streamUrl;
       
       // Update Media Session API for background playback
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: track.title,
-          artist: track.artists.join(', '),
-          album: track.albumTitle || 'Unknown Album',
-          artwork: track.artworkUrl ? [
-            { src: track.artworkUrl, sizes: '512x512', type: 'image/jpeg' }
-          ] : []
-        });
+      if ('mediaSession' in navigator && navigator.mediaSession) {
+        const mediaSession = navigator.mediaSession;
 
-        navigator.mediaSession.setActionHandler('play', () => {
-          audioElement.play();
-          setIsPlaying(true);
-        });
+        if (typeof window !== 'undefined' && 'MediaMetadata' in window) {
+          mediaSession.metadata = new window.MediaMetadata({
+            title: track.title,
+            artist: track.artists.join(', '),
+            album: track.albumTitle || 'Unknown Album',
+            artwork: track.artworkUrl ? [
+              { src: track.artworkUrl, sizes: '512x512', type: 'image/jpeg' }
+            ] : []
+          });
+        }
 
-        navigator.mediaSession.setActionHandler('pause', () => {
-          audioElement.pause();
-          setIsPlaying(false);
-        });
+        const actionHandlers: Array<[
+          MediaSessionAction,
+          MediaSessionActionHandler
+        ]> = [
+          ['play', () => {
+            void audioElement.play();
+            setIsPlaying(true);
+          }],
+          ['pause', () => {
+            audioElement.pause();
+            setIsPlaying(false);
+          }],
+          ['previoustrack', () => {
+            void handlePrevious();
+          }],
+          ['nexttrack', () => {
+            void handleNext();
+          }],
+          ['seekto', (details) => {
+            if (details.seekTime !== undefined) {
+              audioElement.currentTime = details.seekTime;
+            }
+          }]
+        ];
 
-        navigator.mediaSession.setActionHandler('previoustrack', () => {
-          handlePrevious();
-        });
-
-        navigator.mediaSession.setActionHandler('nexttrack', () => {
-          handleNext();
-        });
-
-        navigator.mediaSession.setActionHandler('seekto', (details) => {
-          if (details.seekTime) {
-            audioElement.currentTime = details.seekTime;
+        actionHandlers.forEach(([action, handler]) => {
+          try {
+            mediaSession.setActionHandler(action, handler);
+          } catch (error) {
+            console.warn(`Failed to set media session action handler for ${action}`, error);
           }
         });
       }
