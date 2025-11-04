@@ -12,6 +12,9 @@ export interface ListeningStats {
     plays: number;
     artworkUrl?: string;
     trackId: string;
+    source: string;
+    sourceTrackId: string;
+    durationSec: number;
   }[];
   recentlyPlayed: {
     title: string;
@@ -19,6 +22,9 @@ export interface ListeningStats {
     artworkUrl?: string;
     playedAt: string;
     trackId: string;
+    source: string;
+    sourceTrackId: string;
+    durationSec: number;
   }[];
 }
 
@@ -43,7 +49,10 @@ export const useAnalytics = () => {
             id,
             title,
             artists,
-            artwork_url
+            artwork_url,
+            source,
+            source_track_id,
+            duration_sec
           )
         `)
         .eq('user_id', user.id)
@@ -82,6 +91,9 @@ export const useAnalytics = () => {
         plays: number;
         artworkUrl?: string;
         trackId: string;
+        source: string;
+        sourceTrackId: string;
+        durationSec: number;
       }>();
 
       history?.forEach((item: any) => {
@@ -97,6 +109,9 @@ export const useAnalytics = () => {
               plays: 1,
               artworkUrl: track.artwork_url,
               trackId: track.id,
+              source: track.source,
+              sourceTrackId: track.source_track_id,
+              durationSec: track.duration_sec,
             });
           }
         }
@@ -121,6 +136,9 @@ export const useAnalytics = () => {
           artworkUrl: item.track_metadata.artwork_url,
           playedAt: item.played_at,
           trackId: item.track_metadata.id,
+          source: item.track_metadata.source,
+          sourceTrackId: item.track_metadata.source_track_id,
+          durationSec: item.track_metadata.duration_sec,
         })) || [];
 
       setStats({

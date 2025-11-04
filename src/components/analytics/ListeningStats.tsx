@@ -1,11 +1,11 @@
 import { Card } from '@/components/ui/card';
 import { Music2, Clock, TrendingUp, Headphones, Play } from 'lucide-react';
 import { ListeningStats as Stats } from '@/hooks/useAnalytics';
-import { Button } from '@/components/ui/button';
+import { Track } from '@/types/music';
 
 interface ListeningStatsProps {
   stats: Stats;
-  onPlayTrack?: (trackData: any) => void;
+  onPlayTrack?: (track: Track) => void;
   onArtistClick?: (artist: string) => void;
 }
 
@@ -133,7 +133,15 @@ export const ListeningStats = ({ stats, onPlayTrack, onArtistClick }: ListeningS
                 )}
                 {onPlayTrack && (
                   <button
-                    onClick={() => onPlayTrack(track)}
+                    onClick={() => onPlayTrack({
+                      id: track.trackId,
+                      source: track.source as any,
+                      sourceTrackId: track.sourceTrackId,
+                      title: track.title,
+                      artists: track.artists,
+                      durationSec: track.durationSec,
+                      artworkUrl: track.artworkUrl,
+                    })}
                     className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center"
                   >
                     <Play className="h-5 w-5 text-white" />
