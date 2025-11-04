@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Track } from '@/types/music';
+import { useStreamCache } from './useStreamCache';
 
 const SUPABASE_PROJECT_ID = 'zokteleyadyodflghuse';
 const FUNCTIONS_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1`;
@@ -8,6 +9,7 @@ export const useMusicSearch = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<Track[]>([]);
+  const streamCache = useStreamCache();
 
   const search = async (query: string, sources: string[] = ['jamendo', 'fma', 'audius', 'ytmusic']) => {
     if (!query.trim()) {
@@ -56,6 +58,13 @@ export const useMusicSearch = () => {
 
   const getStreamUrl = async (source: string, trackId: string): Promise<string> => {
     try {
+      // Check cache first
+      const cachedUrl = streamCache.get(source, trackId);
+      if (cachedUrl) {
+        console.log(`Using cached stream URL for ${source}:${trackId}`);
+        return cachedUrl;
+      }
+
       const response = await fetch(
         `${FUNCTIONS_URL}/get-stream-url?source=${source}&trackId=${trackId}`
       );
@@ -65,6 +74,10 @@ export const useMusicSearch = () => {
       }
 
       const data = await response.json();
+      
+      // Cache the stream URL
+      streamCache.set(source, trackId, data.streamUrl);
+      
       return data.streamUrl;
     } catch (err) {
       console.error('Stream URL error:', err);

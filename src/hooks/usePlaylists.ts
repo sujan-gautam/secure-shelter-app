@@ -91,10 +91,46 @@ export const usePlaylists = () => {
     }
   };
 
+  const updatePlaylist = async (
+    playlistId: string, 
+    updates: { title?: string; description?: string; is_public?: boolean }
+  ) => {
+    try {
+      const { data, error } = await supabase
+        .from('playlists')
+        .update(updates)
+        .eq('id', playlistId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setPlaylists(playlists.map(p => p.id === playlistId ? data : p));
+      toast.success('Playlist updated');
+      return data;
+    } catch (error) {
+      console.error('Error updating playlist:', error);
+      toast.error('Failed to update playlist');
+      throw error;
+    }
+  };
+
   const addTrackToPlaylist = async (playlistId: string, track: Track) => {
     try {
       // Ensure track exists in metadata first
       const trackMetadataId = await ensureTrackExists(track);
+
+      // Check if track already exists in playlist
+      const { data: existingTracks } = await supabase
+        .from('playlist_tracks')
+        .select('id')
+        .eq('playlist_id', playlistId)
+        .eq('track_id', trackMetadataId);
+
+      if (existingTracks && existingTracks.length > 0) {
+        toast.info('Track already in playlist');
+        return;
+      }
 
       // Get current max position
       const { data: tracks } = await supabase
@@ -119,6 +155,21 @@ export const usePlaylists = () => {
     } catch (error) {
       console.error('Error adding track to playlist:', error);
       toast.error('Failed to add track');
+    }
+  };
+
+  const removeTrackFromPlaylist = async (playlistTrackId: string) => {
+    try {
+      const { error } = await supabase
+        .from('playlist_tracks')
+        .delete()
+        .eq('id', playlistTrackId);
+
+      if (error) throw error;
+      toast.success('Track removed');
+    } catch (error) {
+      console.error('Error removing track:', error);
+      toast.error('Failed to remove track');
     }
   };
 
@@ -160,8 +211,10 @@ export const usePlaylists = () => {
     playlists,
     loading,
     createPlaylist,
+    updatePlaylist,
     deletePlaylist,
     addTrackToPlaylist,
+    removeTrackFromPlaylist,
     refreshPlaylists: fetchPlaylists,
   };
 };

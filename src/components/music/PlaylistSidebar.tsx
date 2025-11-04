@@ -16,7 +16,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 
-export const PlaylistSidebar = () => {
+interface PlaylistSidebarProps {
+  onPlaylistSelect?: (playlistId: string) => void;
+}
+
+export const PlaylistSidebar = ({ onPlaylistSelect }: PlaylistSidebarProps) => {
   const { playlists, createPlaylist, deletePlaylist, loading } = usePlaylists();
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [showInput, setShowInput] = useState(false);
@@ -84,7 +88,8 @@ export const PlaylistSidebar = () => {
             playlists.map((playlist) => (
               <div
                 key={playlist.id}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary/50 group"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary/50 group cursor-pointer"
+                onClick={() => onPlaylistSelect?.(playlist.id)}
               >
                 <Music className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="flex-1 truncate text-sm">{playlist.title}</span>
@@ -94,6 +99,7 @@ export const PlaylistSidebar = () => {
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>

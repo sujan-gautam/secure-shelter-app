@@ -10,6 +10,7 @@ import { SearchResults } from '@/components/music/SearchResults';
 import { PlaylistSidebar } from '@/components/music/PlaylistSidebar';
 import { ActivityDashboard } from '@/components/analytics/ActivityDashboard';
 import { HomePage } from '@/components/home/HomePage';
+import { PlaylistDetailView } from '@/components/playlist/PlaylistDetailView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Music2, Search, LogOut, Loader2, BarChart3, Home } from 'lucide-react';
@@ -28,6 +29,7 @@ const Dashboard = () => {
   const [showSidebar, setShowSidebar] = useState(true);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showHome, setShowHome] = useState(true);
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
   const playStartTimeRef = useRef<number>(0);
   
   // Player state
@@ -206,9 +208,20 @@ const Dashboard = () => {
     );
   }
 
+  const handlePlaylistSelect = (playlistId: string) => {
+    setSelectedPlaylistId(playlistId);
+    setShowDashboard(false);
+    setShowHome(false);
+  };
+
+  const handleBackFromPlaylist = () => {
+    setSelectedPlaylistId(null);
+    setShowHome(true);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-hero pb-32 flex">
-      {showSidebar && <PlaylistSidebar />}
+      {showSidebar && <PlaylistSidebar onPlaylistSelect={handlePlaylistSelect} />}
       
       <div className="flex-1 flex flex-col">
       {/* Header */}
@@ -270,13 +283,21 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {searchLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        )}
+        {selectedPlaylistId ? (
+          <PlaylistDetailView
+            playlistId={selectedPlaylistId}
+            onBack={handleBackFromPlaylist}
+            onPlayTrack={handlePlayTrack}
+          />
+        ) : (
+          <>
+            {searchLoading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            )}
 
-        {showHome && !searchLoading && !results.length && (
+            {showHome && !searchLoading && !results.length && (
           <HomePage
             onPlayTrack={handlePlayTrack}
             onToggleFavorite={handleToggleFavorite}
@@ -304,13 +325,15 @@ const Dashboard = () => {
           </div>
         )}
 
-        {results.length > 0 && (
-          <SearchResults
-            tracks={results}
-            onPlayTrack={handlePlayTrack}
-            onToggleFavorite={handleToggleFavorite}
-            isFavorite={isFavorite}
-          />
+            {results.length > 0 && (
+              <SearchResults
+                tracks={results}
+                onPlayTrack={handlePlayTrack}
+                onToggleFavorite={handleToggleFavorite}
+                isFavorite={isFavorite}
+              />
+            )}
+          </>
         )}
       </main>
 
