@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Music2, Search, LogOut, Loader2, BarChart3, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import { Track } from '@/types/music';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -362,6 +363,9 @@ const Dashboard = () => {
         onToggleRepeat={queue.toggleRepeat}
         onToggleFavorite={() => queue.currentTrack && handleToggleFavorite(queue.currentTrack)}
       />
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </div>
   );
 };
