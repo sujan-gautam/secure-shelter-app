@@ -153,16 +153,13 @@ const Dashboard = () => {
   };
 
   const handlePlayTrack = async (track: Track, trackQueue?: Track[]) => {
-    setShowDashboard(false);
-    setShowHome(false);
     queue.playTrack(track, trackQueue || results);
     await playTrack(track);
   };
 
   const handlePlayTrackFromPlaylist = async (track: Track, playlistTracks: Track[]) => {
-    setShowDashboard(false);
-    setShowHome(false);
     setSelectedPlaylistId(null);
+    setShowHome(true);
     queue.playTrack(track, playlistTracks);
     await playTrack(track);
   };
