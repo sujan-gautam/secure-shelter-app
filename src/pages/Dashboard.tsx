@@ -342,7 +342,8 @@ const Dashboard = () => {
           </>
         )}
       </main>
-
+      </div>
+      
       {/* Player Bar */}
       <PlayerBar
         currentTrack={queue.currentTrack}
@@ -361,7 +362,6 @@ const Dashboard = () => {
         onToggleRepeat={queue.toggleRepeat}
         onToggleFavorite={() => queue.currentTrack && handleToggleFavorite(queue.currentTrack)}
       />
-      </div>
     </div>
   );
 };
