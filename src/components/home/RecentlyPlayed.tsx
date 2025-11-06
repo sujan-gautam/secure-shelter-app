@@ -6,14 +6,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface RecentlyPlayedProps {
-  onPlayTrack: (track: any) => void;
+  onPlayTrack: (track: any, trackQueue?: Track[]) => void;
 }
 
 export const RecentlyPlayed = ({ onPlayTrack }: RecentlyPlayedProps) => {
   const [recentTracks, setRecentTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const handlePlayTrack = (trackData: any) => {
+  const handlePlayTrack = (trackData: any, allTracks: any[]) => {
     const track: Track = {
       id: trackData.id,
       source: trackData.source as any,
@@ -24,7 +24,19 @@ export const RecentlyPlayed = ({ onPlayTrack }: RecentlyPlayedProps) => {
       artworkUrl: trackData.artwork_url,
       albumTitle: trackData.album_title,
     };
-    onPlayTrack(track);
+    
+    const trackQueue: Track[] = allTracks.map(item => ({
+      id: item.track_metadata.id,
+      source: item.track_metadata.source as any,
+      sourceTrackId: item.track_metadata.source_track_id,
+      title: item.track_metadata.title,
+      artists: item.track_metadata.artists,
+      durationSec: item.track_metadata.duration_sec,
+      artworkUrl: item.track_metadata.artwork_url,
+      albumTitle: item.track_metadata.album_title,
+    }));
+    
+    onPlayTrack(track, trackQueue);
   };
 
   useEffect(() => {
@@ -96,7 +108,7 @@ export const RecentlyPlayed = ({ onPlayTrack }: RecentlyPlayedProps) => {
             <Card
               key={item.id}
               className="group relative overflow-hidden hover:shadow-glow-accent transition-all duration-300 cursor-pointer hover-scale bg-card/30 backdrop-blur-sm border-border/50"
-              onClick={() => handlePlayTrack(track)}
+              onClick={() => handlePlayTrack(track, recentTracks)}
             >
               <div className="aspect-square relative">
                 {track.artwork_url ? (

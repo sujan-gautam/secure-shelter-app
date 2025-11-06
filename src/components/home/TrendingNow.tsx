@@ -6,13 +6,13 @@ import { useAnalytics } from '@/hooks/useAnalytics';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface TrendingNowProps {
-  onPlayTrack: (track: any) => void;
+  onPlayTrack: (track: any, trackQueue?: Track[]) => void;
 }
 
 export const TrendingNow = ({ onPlayTrack }: TrendingNowProps) => {
   const { stats, loading } = useAnalytics();
 
-  const handlePlayTrack = (trackData: any) => {
+  const handlePlayTrack = (trackData: any, allTracks: any[]) => {
     const track: Track = {
       id: trackData.trackId,
       source: trackData.source as any,
@@ -22,7 +22,18 @@ export const TrendingNow = ({ onPlayTrack }: TrendingNowProps) => {
       durationSec: trackData.durationSec,
       artworkUrl: trackData.artworkUrl,
     };
-    onPlayTrack(track);
+    
+    const trackQueue: Track[] = allTracks.map(t => ({
+      id: t.trackId,
+      source: t.source as any,
+      sourceTrackId: t.sourceTrackId,
+      title: t.title,
+      artists: t.artists,
+      durationSec: t.durationSec,
+      artworkUrl: t.artworkUrl,
+    }));
+    
+    onPlayTrack(track, trackQueue);
   };
 
   if (loading) {
@@ -60,7 +71,7 @@ export const TrendingNow = ({ onPlayTrack }: TrendingNowProps) => {
           <Card
             key={track.trackId}
             className="group relative overflow-hidden hover:shadow-card-hover transition-all duration-300 cursor-pointer hover-scale bg-card/50 backdrop-blur-sm border-border/50"
-            onClick={() => handlePlayTrack(track)}
+            onClick={() => handlePlayTrack(track, trendingTracks)}
           >
             <div className="aspect-square relative">
               {track.artworkUrl ? (
