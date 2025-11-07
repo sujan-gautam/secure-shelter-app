@@ -227,37 +227,98 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero pb-32 flex">
-      {showSidebar && <PlaylistSidebar onPlaylistSelect={handlePlaylistSelect} />}
+    <div className="min-h-screen bg-gradient-hero pb-32 lg:pb-32 md:pb-32 flex flex-col lg:flex-row">
+      {/* Mobile: Sidebar as overlay, Desktop: Fixed sidebar */}
+      <div className={`
+        fixed lg:static inset-0 z-50 lg:z-auto
+        transform transition-transform duration-300 lg:transform-none
+        ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        {showSidebar && (
+          <>
+            {/* Mobile overlay backdrop */}
+            <div 
+              className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowSidebar(false)}
+            />
+            <div className="relative lg:static">
+              <PlaylistSidebar onPlaylistSelect={handlePlaylistSelect} />
+            </div>
+          </>
+        )}
+      </div>
       
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-lg sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-primary p-2 rounded-xl">
-                <Music2 className="h-6 w-6 text-primary-foreground" />
+        <div className="px-3 md:px-4 py-3 md:py-4">
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-0">
+            {/* Top row: Logo + Actions */}
+            <div className="flex items-center justify-between md:flex-1">
+              <div className="flex items-center gap-2 md:gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowSidebar(!showSidebar)}
+                  className="lg:hidden"
+                >
+                  <Music2 className="h-5 w-5" />
+                </Button>
+                <div className="bg-gradient-primary p-1.5 md:p-2 rounded-lg md:rounded-xl">
+                  <Music2 className="h-5 w-5 md:h-6 md:w-6 text-primary-foreground" />
+                </div>
+                <h1 className="text-lg md:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                  OpenBeats
+                </h1>
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                OpenBeats
-              </h1>
+
+              <div className="flex items-center gap-1 md:hidden">
+                <Button 
+                  variant={showHome ? "default" : "ghost"}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    setShowHome(true);
+                    setShowDashboard(false);
+                  }}
+                  title="Home"
+                >
+                  <Home className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant={showDashboard ? "default" : "ghost"}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    setShowDashboard(true);
+                    setShowHome(false);
+                  }}
+                  title="Analytics"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
-            <form onSubmit={handleSearch} className="flex-1 max-w-2xl mx-8">
+            {/* Search bar - Full width on mobile */}
+            <form onSubmit={handleSearch} className="flex-1 md:max-w-2xl md:mx-8">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search songs, artists, albums..."
+                  placeholder="Search songs, artists..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-secondary/50 border-border/50"
+                  className="pl-9 md:pl-10 h-9 md:h-10 bg-secondary/50 border-border/50 text-sm md:text-base"
                 />
               </div>
             </form>
 
-            <div className="flex items-center gap-2">
+            {/* Desktop actions */}
+            <div className="hidden md:flex items-center gap-2">
               <Button 
                 variant={showHome ? "default" : "ghost"}
                 size="icon"
@@ -289,7 +350,7 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="px-3 md:px-4 py-4 md:py-8 overflow-auto">
         {selectedPlaylistId ? (
           <PlaylistDetailView
             playlistId={selectedPlaylistId}

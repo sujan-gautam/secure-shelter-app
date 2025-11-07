@@ -43,9 +43,9 @@ export const TrendingNow = ({ onPlayTrack }: TrendingNowProps) => {
           <TrendingUp className="h-6 w-6 text-primary" />
           <h2 className="text-2xl font-bold">Trending Now</h2>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
           {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-48 rounded-lg" />
+            <Skeleton key={i} className="h-40 md:h-48 rounded-lg" />
           ))}
         </div>
       </section>
@@ -58,15 +58,15 @@ export const TrendingNow = ({ onPlayTrack }: TrendingNowProps) => {
 
   return (
     <section className="mb-12 animate-fade-in">
-      <div className="flex items-center gap-2 mb-6">
-        <TrendingUp className="h-6 w-6 text-primary" />
-        <h2 className="text-2xl font-bold">Trending Now</h2>
-        <Badge variant="secondary" className="ml-2">
+      <div className="flex items-center gap-2 mb-4 md:mb-6">
+        <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+        <h2 className="text-xl md:text-2xl font-bold">Trending Now</h2>
+        <Badge variant="secondary" className="ml-2 text-xs">
           Hot 🔥
         </Badge>
       </div>
       
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
         {trendingTracks.map((track, index) => (
           <Card
             key={track.trackId}
@@ -94,19 +94,19 @@ export const TrendingNow = ({ onPlayTrack }: TrendingNowProps) => {
               </div>
 
               {/* Ranking Badge */}
-              <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center">
+              <div className="absolute top-1 left-1 md:top-2 md:left-2 bg-black/80 backdrop-blur-sm rounded-full w-6 h-6 md:w-8 md:h-8 flex items-center justify-center">
                 <span className="text-xs font-bold text-primary">#{index + 1}</span>
               </div>
             </div>
 
-            <div className="p-3">
-              <h3 className="font-semibold truncate text-sm mb-1">
+            <div className="p-2 md:p-3">
+              <h3 className="font-semibold truncate text-xs md:text-sm mb-1">
                 {track.title}
               </h3>
               <p className="text-xs text-muted-foreground truncate">
                 {track.artists.join(', ')}
               </p>
-              <div className="flex items-center justify-between mt-2">
+              <div className="flex items-center justify-between mt-1 md:mt-2">
                 <span className="text-xs text-muted-foreground">
                   {track.plays} plays
                 </span>

@@ -61,11 +61,11 @@ export const SearchResults = ({
       {trackList.map((track) => (
         <div
           key={track.id}
-          className="group bg-card/30 backdrop-blur-sm border border-border/50 rounded-lg p-4 hover:bg-card/50 hover:border-primary/30 transition-all"
+          className="group bg-card/30 backdrop-blur-sm border border-border/50 rounded-lg p-3 md:p-4 hover:bg-card/50 hover:border-primary/30 transition-all"
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             {/* Artwork */}
-            <div className="relative w-16 h-16 shrink-0">
+            <div className="relative w-12 h-12 md:w-16 md:h-16 shrink-0">
               {track.artworkUrl ? (
                 <img
                   src={track.artworkUrl}
@@ -93,41 +93,44 @@ export const SearchResults = ({
 
             {/* Track Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-start gap-2 mb-1">
-                <h4 className="font-semibold text-foreground truncate flex-1">
+              <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-2 mb-1">
+                <h4 className="font-semibold text-sm md:text-base text-foreground truncate flex-1">
                   {track.title}
                 </h4>
-                <Badge variant="outline" className={`shrink-0 ${getSourceColor(track.source)}`}>
+                <Badge variant="outline" className={`shrink-0 text-xs ${getSourceColor(track.source)} w-fit`}>
                   {track.source.toUpperCase()}
                 </Badge>
               </div>
               
-              <p className="text-sm text-muted-foreground truncate mb-1">
+              <p className="text-xs md:text-sm text-muted-foreground truncate mb-1">
                 {track.artists.join(', ')}
               </p>
               
               {track.albumTitle && (
-                <p className="text-xs text-muted-foreground/70 truncate">
+                <p className="hidden md:block text-xs text-muted-foreground/70 truncate">
                   {track.albumTitle}
                 </p>
               )}
             </div>
 
-            {/* Duration */}
-            <div className="text-sm text-muted-foreground shrink-0">
+            {/* Duration - Hidden on mobile */}
+            <div className="hidden md:block text-sm text-muted-foreground shrink-0">
               {formatDuration(track.durationSec)}
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-8 w-8 md:h-10 md:w-10"
                 onClick={() => onToggleFavorite(track)}
               >
-                <Heart className={isFavorite(track.id) ? "h-4 w-4 fill-primary text-primary" : "h-4 w-4"} />
+                <Heart className={isFavorite(track.id) ? "h-3.5 w-3.5 md:h-4 md:w-4 fill-primary text-primary" : "h-3.5 w-3.5 md:h-4 md:w-4"} />
               </Button>
-              <PlaylistDialog track={track} />
+              <div className="hidden md:block">
+                <PlaylistDialog track={track} />
+              </div>
             </div>
           </div>
         </div>
@@ -137,16 +140,16 @@ export const SearchResults = ({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-4 md:mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-2">
           <Music2 className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-bold">
+          <h2 className="text-lg md:text-xl font-bold">
             {filteredTracks.length} {filteredTracks.length === 1 ? 'Track' : 'Tracks'}
           </h2>
         </div>
         
-        <TabsList className="bg-card/50 border border-border/50">
-          <TabsTrigger value="all" className="data-[state=active]:bg-primary/20">
+        <TabsList className="bg-card/50 border border-border/50 w-full md:w-auto overflow-x-auto">
+          <TabsTrigger value="all" className="data-[state=active]:bg-primary/20 text-xs md:text-sm whitespace-nowrap">
             All Sources
           </TabsTrigger>
           {sources.map(source => {
@@ -155,10 +158,10 @@ export const SearchResults = ({
               <TabsTrigger 
                 key={source} 
                 value={source}
-                className="data-[state=active]:bg-primary/20"
+                className="data-[state=active]:bg-primary/20 text-xs md:text-sm whitespace-nowrap"
               >
                 <span className="mr-1">{icon}</span>
-                {name}
+                <span className="hidden sm:inline">{name}</span>
               </TabsTrigger>
             );
           })}

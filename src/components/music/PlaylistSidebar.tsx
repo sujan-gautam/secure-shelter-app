@@ -33,7 +33,7 @@ export const PlaylistSidebar = ({ onPlaylistSelect }: PlaylistSidebarProps) => {
   };
 
   return (
-    <div className="w-64 bg-card/50 border-r border-border/50 flex flex-col">
+    <div className="w-full lg:w-64 h-full lg:h-auto bg-card/95 lg:bg-card/50 border-r border-border/50 flex flex-col max-w-sm lg:max-w-none">
       <div className="p-4 border-b border-border/50">
         <h2 className="font-semibold mb-3">Your Library</h2>
         

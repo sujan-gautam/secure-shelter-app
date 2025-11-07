@@ -83,31 +83,31 @@ const playlists = [
 export const FeaturedPlaylists = ({ onPlaylistClick }: FeaturedPlaylistsProps) => {
   return (
     <section className="mb-12 animate-fade-in">
-      <div className="flex items-center gap-2 mb-6">
-        <Sparkles className="h-6 w-6 text-primary" />
-        <h2 className="text-2xl font-bold">Featured Playlists</h2>
+      <div className="flex items-center gap-2 mb-4 md:mb-6">
+        <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+        <h2 className="text-xl md:text-2xl font-bold">Featured Playlists</h2>
       </div>
       
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
         {playlists.map((playlist) => {
           const Icon = playlist.icon;
           return (
             <Card
               key={playlist.id}
-              className="group relative overflow-hidden hover:shadow-card-hover transition-all duration-300 cursor-pointer hover-scale p-6 bg-card/30 backdrop-blur-sm border-border/50"
+              className="group relative overflow-hidden hover:shadow-card-hover transition-all duration-300 cursor-pointer hover-scale p-4 md:p-6 bg-card/30 backdrop-blur-sm border-border/50"
               onClick={() => onPlaylistClick(playlist.query)}
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${playlist.gradient} opacity-50`} />
               
               <div className="relative">
-                <div className="mb-4">
-                  <Icon className={`h-12 w-12 ${playlist.iconColor}`} />
+                <div className="mb-3 md:mb-4">
+                  <Icon className={`h-10 w-10 md:h-12 md:w-12 ${playlist.iconColor}`} />
                 </div>
                 
-                <h3 className="font-bold text-lg mb-1">
+                <h3 className="font-bold text-base md:text-lg mb-1">
                   {playlist.name}
                 </h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs md:text-sm text-muted-foreground line-clamp-2">
                   {playlist.description}
                 </p>
               </div>

@@ -244,7 +244,7 @@ export const PlaylistDetailView = ({
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="border-b border-border/50 bg-card/50 backdrop-blur-lg">
-        <div className="container mx-auto px-4 py-6">
+        <div className="px-3 md:px-4 py-4 md:py-6">
           <Button
             variant="ghost"
             size="sm"
@@ -290,17 +290,17 @@ export const PlaylistDetailView = ({
             </div>
           ) : (
             <div>
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold mb-2">{playlist.title}</h1>
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                <div className="flex-1">
+                  <h1 className="text-2xl md:text-3xl font-bold mb-2">{playlist.title}</h1>
                   {playlist.description && (
-                    <p className="text-muted-foreground mb-2">{playlist.description}</p>
+                    <p className="text-sm md:text-base text-muted-foreground mb-2">{playlist.description}</p>
                   )}
                   <p className="text-sm text-muted-foreground">
                     {playlist.tracks.length} track{playlist.tracks.length !== 1 ? 's' : ''}
                   </p>
                 </div>
-                <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
+                <Button onClick={() => setIsEditing(true)} variant="outline" size="sm" className="w-full md:w-auto">
                   <Edit2 className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
@@ -312,7 +312,7 @@ export const PlaylistDetailView = ({
 
       {/* Tracks List */}
       <ScrollArea className="flex-1">
-        <div className="container mx-auto px-4 py-6">
+        <div className="px-3 md:px-4 py-4 md:py-6">
           {playlist.tracks.length === 0 ? (
             <Card className="p-12 text-center">
               <Music2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
@@ -326,11 +326,11 @@ export const PlaylistDetailView = ({
               {playlist.tracks.map((item, index) => (
                 <Card
                   key={item.id}
-                  className="p-4 hover:bg-secondary/50 transition-colors group"
+                  className="p-3 md:p-4 hover:bg-secondary/50 transition-colors group"
                 >
-                  <div className="flex items-center gap-4">
-                    <Grip className="h-5 w-5 text-muted-foreground/50 cursor-grab" />
-                    <span className="text-muted-foreground w-8 text-center">
+                  <div className="flex items-center gap-2 md:gap-4">
+                    <Grip className="hidden md:block h-5 w-5 text-muted-foreground/50 cursor-grab" />
+                    <span className="text-muted-foreground w-6 md:w-8 text-center text-sm">
                       {index + 1}
                     </span>
                     
@@ -339,11 +339,11 @@ export const PlaylistDetailView = ({
                         <img
                           src={item.track_metadata.artwork_url}
                           alt={item.track_metadata.title}
-                          className="w-12 h-12 rounded-lg object-cover"
+                          className="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                          <Music2 className="h-6 w-6 text-muted-foreground" />
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-muted flex items-center justify-center">
+                          <Music2 className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
                         </div>
                       )}
                       <button
@@ -355,13 +355,13 @@ export const PlaylistDetailView = ({
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.track_metadata.title}</p>
-                      <p className="text-sm text-muted-foreground truncate">
+                      <p className="font-medium text-sm md:text-base truncate">{item.track_metadata.title}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground truncate">
                         {item.track_metadata.artists.join(', ')}
                       </p>
                     </div>
 
-                    <span className="text-sm text-muted-foreground">
+                    <span className="hidden md:block text-sm text-muted-foreground shrink-0">
                       {formatDuration(item.track_metadata.duration_sec)}
                     </span>
 
@@ -369,9 +369,9 @@ export const PlaylistDetailView = ({
                       variant="ghost"
                       size="icon"
                       onClick={() => setDeleteTrackId(item.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="md:opacity-0 md:group-hover:opacity-100 transition-opacity h-8 w-8 md:h-10 md:w-10 shrink-0"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     </Button>
                   </div>
                 </Card>

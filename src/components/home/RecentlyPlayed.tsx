@@ -83,9 +83,9 @@ export const RecentlyPlayed = ({ onPlayTrack }: RecentlyPlayedProps) => {
           <Clock className="h-6 w-6 text-primary" />
           <h2 className="text-2xl font-bold">Recently Played</h2>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 md:gap-3">
           {[...Array(8)].map((_, i) => (
-            <Skeleton key={i} className="h-40 rounded-lg" />
+            <Skeleton key={i} className="h-32 md:h-40 rounded-lg" />
           ))}
         </div>
       </section>
@@ -96,12 +96,12 @@ export const RecentlyPlayed = ({ onPlayTrack }: RecentlyPlayedProps) => {
 
   return (
     <section className="mb-12 animate-fade-in">
-      <div className="flex items-center gap-2 mb-6">
-        <Clock className="h-6 w-6 text-primary" />
-        <h2 className="text-2xl font-bold">Recently Played</h2>
+      <div className="flex items-center gap-2 mb-4 md:mb-6">
+        <Clock className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+        <h2 className="text-xl md:text-2xl font-bold">Recently Played</h2>
       </div>
       
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 md:gap-3">
         {recentTracks.map((item) => {
           const track = item.track_metadata;
           return (

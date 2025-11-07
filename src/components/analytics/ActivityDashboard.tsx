@@ -44,7 +44,7 @@ export const ActivityDashboard = ({
 
   return (
     <Tabs defaultValue="stats" className="w-full">
-      <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
+      <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-4 md:mb-8">
         <TabsTrigger value="stats" className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4" />
           Your Stats
