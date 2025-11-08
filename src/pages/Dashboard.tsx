@@ -227,26 +227,27 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero pb-32 lg:pb-32 md:pb-32 flex flex-col lg:flex-row">
-      {/* Mobile: Sidebar as overlay, Desktop: Fixed sidebar */}
-      <div className={`
-        fixed lg:static inset-0 z-50 lg:z-auto
-        transform transition-transform duration-300 lg:transform-none
-        ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        {showSidebar && (
-          <>
-            {/* Mobile overlay backdrop */}
-            <div 
-              className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => setShowSidebar(false)}
-            />
-            <div className="relative lg:static">
-              <PlaylistSidebar onPlaylistSelect={handlePlaylistSelect} />
-            </div>
-          </>
-        )}
-      </div>
+    <>
+      <div className="min-h-screen bg-gradient-hero pb-32 flex flex-col lg:flex-row">
+        {/* Mobile: Sidebar as overlay, Desktop: Fixed sidebar */}
+        <div className={`
+          fixed lg:static inset-0 z-50 lg:z-auto
+          transform transition-transform duration-300 lg:transform-none
+          ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}>
+          {showSidebar && (
+            <>
+              {/* Mobile overlay backdrop */}
+              <div 
+                className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm"
+                onClick={() => setShowSidebar(false)}
+              />
+              <div className="relative lg:static">
+                <PlaylistSidebar onPlaylistSelect={handlePlaylistSelect} />
+              </div>
+            </>
+          )}
+        </div>
       
       <div className="flex-1 flex flex-col min-w-0">
       {/* Header */}
@@ -405,8 +406,9 @@ const Dashboard = () => {
         )}
       </main>
       </div>
-      
-      {/* Player Bar */}
+      </div>
+
+      {/* Player Bar - Outside main container for proper fixed positioning */}
       <PlayerBar
         currentTrack={queue.currentTrack}
         isPlaying={isPlaying}
@@ -427,7 +429,7 @@ const Dashboard = () => {
 
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
-    </div>
+    </>
   );
 };
 
