@@ -44,7 +44,7 @@ export const AlbumView = ({
   const albumCover = tracks[0]?.artworkUrl;
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in pb-32">
       {/* Header */}
       <div className="mb-6 md:mb-8">
         <Button
