@@ -71,16 +71,10 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music - Use our streaming proxy to handle CORS
-        console.log(`Setting up stream proxy for: ${trackId}`);
-        
-        // Get Supabase project URL from environment
-        const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://zokteleyadyodflghuse.supabase.co';
-        
-        // Return our proxy URL that will handle the actual streaming
-        streamUrl = `${supabaseUrl}/functions/v1/stream-proxy?source=ytmusic&trackId=${trackId}`;
-        console.log(`✓ Stream proxy ready: ${streamUrl}`);
-        
+        // YouTube Music - Use streaming proxy
+        console.log(`Proxying YouTube: ${trackId}`);
+        streamUrl = `https://zokteleyadyodflghuse.supabase.co/functions/v1/stream-proxy?trackId=${trackId}`;
+        console.log(`✓ Proxy URL: ${streamUrl}`);
         break;
       }
 
