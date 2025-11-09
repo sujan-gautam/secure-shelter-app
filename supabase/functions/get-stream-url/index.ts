@@ -71,83 +71,72 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music - use parallel requests with Promise.any for first success
-        console.log(`Extracting YouTube audio for: ${trackId}`);
+        // YouTube Music - stream directly through Invidious proxy with CORS support
+        console.log(`Getting YouTube stream for: ${trackId}`);
         
+        // Use Invidious instances that support direct audio streaming with CORS
         const invidiousInstances = [
-          'https://inv.perditum.com',      // 98.6% uptime, CORS + API
-          'https://invidious.nerdvpn.de',  // 99.2% uptime
-          'https://inv.nadeko.net',        // 97.9% uptime
-          'https://yewtu.be',              // 91.9% uptime, very popular
-          'https://invidious.f5.si',       // 91.5% uptime
-          'https://inv.riverside.rocks',   // Backup
-          'https://invidious.privacydev.net' // Backup
+          'https://inv.perditum.com',
+          'https://yewtu.be',
+          'https://invidious.nerdvpn.de',
+          'https://inv.nadeko.net',
+          'https://invidious.f5.si'
         ];
 
-        // Helper function to fetch from a single instance
-        const fetchFromInstance = async (instance: string): Promise<{ url: string; instance: string }> => {
+        // Try instances in parallel for fastest response
+        const fetchFromInstance = async (instance: string): Promise<string> => {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout per instance
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
           
           try {
-            const response = await fetch(
-              `${instance}/api/v1/videos/${trackId}`,
-              { 
-                signal: controller.signal,
-                headers: { 
-                  'Accept': 'application/json',
-                  'User-Agent': 'OpenBeats/1.0'
-                }
-              }
-            );
+            // Use Invidious direct stream endpoint
+            const streamEndpoint = `${instance}/latest_version?id=${trackId}&itag=251`;
+            
+            // Test if endpoint is accessible
+            const testResponse = await fetch(streamEndpoint, {
+              method: 'HEAD',
+              signal: controller.signal,
+              headers: { 'User-Agent': 'OpenBeats/1.0' }
+            });
             
             clearTimeout(timeoutId);
             
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}`);
+            if (testResponse.ok) {
+              console.log(`✓ Stream ready from ${instance}`);
+              return streamEndpoint;
             }
             
-            const data = await response.json();
-            
-            // Get audio-only streams
-            if (data.adaptiveFormats && data.adaptiveFormats.length > 0) {
-              const audioStreams = data.adaptiveFormats.filter((f: any) => 
-                f.type && f.type.startsWith('audio/') && f.url
-              );
-              
-              if (audioStreams.length > 0) {
-                // Sort by bitrate to get best quality
-                const bestAudio = audioStreams.sort((a: any, b: any) => {
-                  const bitrateA = parseInt(a.bitrate) || 0;
-                  const bitrateB = parseInt(b.bitrate) || 0;
-                  return bitrateB - bitrateA;
-                })[0];
-                
-                console.log(`✓ Success from ${instance}`);
-                return { url: bestAudio.url, instance };
-              }
-            }
-            
-            throw new Error('No audio streams found');
+            throw new Error(`Not accessible`);
           } catch (err) {
             clearTimeout(timeoutId);
-            const error = err instanceof Error ? err.message : 'Unknown error';
-            console.log(`✗ ${instance} failed: ${error}`);
-            throw new Error(`${instance}: ${error}`);
+            const error = err instanceof Error ? err.message : 'Unknown';
+            console.log(`✗ ${instance}: ${error}`);
+            throw new Error(error);
           }
         };
 
-        // Use Promise.any to get the first successful response from all instances in parallel
-        console.log('Trying all instances in parallel...');
+        console.log('Finding fastest working proxy...');
         try {
           const allPromises = invidiousInstances.map(fetchFromInstance);
-          const result = await Promise.any(allPromises);
-          streamUrl = result.url;
-          console.log(`✓ Audio stream ready from ${result.instance}`);
+          streamUrl = await Promise.any(allPromises);
+          console.log(`✓ Using Invidious direct stream`);
         } catch (error) {
-          // All promises rejected
-          console.error('All YouTube proxy instances failed');
-          throw new Error('YouTube audio temporarily unavailable. All proxy servers are down. Please try a different track or source.');
+          console.error('All Invidious instances failed, trying fallback method');
+          
+          // Fallback: Use first instance with direct format
+          for (const instance of invidiousInstances.slice(0, 2)) {
+            try {
+              streamUrl = `${instance}/latest_version?id=${trackId}&itag=251`;
+              console.log(`Using fallback: ${instance}`);
+              break;
+            } catch (e) {
+              continue;
+            }
+          }
+          
+          if (!streamUrl) {
+            throw new Error('YouTube streaming temporarily unavailable');
+          }
         }
         
         break;
