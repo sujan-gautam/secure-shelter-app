@@ -71,33 +71,37 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music - use verified working Invidious instances with API enabled
+        // YouTube Music - use parallel requests with Promise.race for fastest response
         console.log(`Extracting YouTube audio for: ${trackId}`);
         
         const invidiousInstances = [
-          'https://inv.perditum.com',  // CORS + API enabled
-          'https://yewtu.be',           // Popular, reliable
-          'https://invidious.nerdvpn.de',
-          'https://inv.nadeko.net',
-          'https://invidious.f5.si'
+          'https://inv.perditum.com',      // 98.6% uptime, CORS + API
+          'https://invidious.nerdvpn.de',  // 99.2% uptime
+          'https://inv.nadeko.net',        // 97.9% uptime
+          'https://yewtu.be',              // 91.9% uptime, very popular
+          'https://invidious.f5.si',       // 91.5% uptime
+          'https://inv.riverside.rocks',   // Backup
+          'https://invidious.privacydev.net' // Backup
         ];
 
-        let lastError = '';
-        
-        for (const instance of invidiousInstances) {
+        // Helper function to fetch from a single instance
+        const fetchFromInstance = async (instance: string): Promise<{ url: string; instance: string }> => {
           try {
-            console.log(`Trying ${instance}`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3500); // Reduced to 3.5s
             
             const response = await fetch(
               `${instance}/api/v1/videos/${trackId}`,
               { 
-                signal: AbortSignal.timeout(6000),
+                signal: controller.signal,
                 headers: { 
                   'Accept': 'application/json',
                   'User-Agent': 'OpenBeats/1.0'
                 }
               }
             );
+            
+            clearTimeout(timeoutId);
             
             if (!response.ok) {
               throw new Error(`HTTP ${response.status}`);
@@ -119,23 +123,38 @@ Deno.serve(async (req) => {
                   return bitrateB - bitrateA;
                 })[0];
                 
-                streamUrl = bestAudio.url;
-                console.log(`✓ Audio extracted from ${instance} (${bestAudio.type})`);
-                break;
+                return { url: bestAudio.url, instance };
               }
             }
             
             throw new Error('No audio streams found');
           } catch (err) {
-            lastError = err instanceof Error ? err.message : 'Unknown error';
-            console.log(`✗ ${instance}: ${lastError}`);
-            continue;
+            const error = err instanceof Error ? err.message : 'Unknown error';
+            throw new Error(`${instance}: ${error}`);
+          }
+        };
+
+        // Try first batch in parallel (top 4 most reliable instances)
+        console.log('Trying primary instances in parallel...');
+        try {
+          const primaryPromises = invidiousInstances.slice(0, 4).map(fetchFromInstance);
+          const result = await Promise.race(primaryPromises);
+          streamUrl = result.url;
+          console.log(`✓ Audio extracted from ${result.instance} (fastest response)`);
+        } catch (primaryError) {
+          console.log('Primary instances failed, trying backup instances...');
+          
+          // If all primary fail, try backup instances in parallel
+          try {
+            const backupPromises = invidiousInstances.slice(4).map(fetchFromInstance);
+            const result = await Promise.race(backupPromises);
+            streamUrl = result.url;
+            console.log(`✓ Audio extracted from ${result.instance} (backup)`);
+          } catch (backupError) {
+            throw new Error('All YouTube proxies unavailable. Please try again.');
           }
         }
-
-        if (!streamUrl) {
-          throw new Error(`YouTube audio extraction failed: ${lastError}. All instances unavailable.`);
-        }
+        
         break;
       }
 
