@@ -71,73 +71,15 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music - stream directly through Invidious proxy with CORS support
-        console.log(`Getting YouTube stream for: ${trackId}`);
+        // YouTube Music - Use our streaming proxy to handle CORS
+        console.log(`Setting up stream proxy for: ${trackId}`);
         
-        // Use Invidious instances that support direct audio streaming with CORS
-        const invidiousInstances = [
-          'https://inv.perditum.com',
-          'https://yewtu.be',
-          'https://invidious.nerdvpn.de',
-          'https://inv.nadeko.net',
-          'https://invidious.f5.si'
-        ];
-
-        // Try instances in parallel for fastest response
-        const fetchFromInstance = async (instance: string): Promise<string> => {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000);
-          
-          try {
-            // Use Invidious direct stream endpoint
-            const streamEndpoint = `${instance}/latest_version?id=${trackId}&itag=251`;
-            
-            // Test if endpoint is accessible
-            const testResponse = await fetch(streamEndpoint, {
-              method: 'HEAD',
-              signal: controller.signal,
-              headers: { 'User-Agent': 'OpenBeats/1.0' }
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (testResponse.ok) {
-              console.log(`✓ Stream ready from ${instance}`);
-              return streamEndpoint;
-            }
-            
-            throw new Error(`Not accessible`);
-          } catch (err) {
-            clearTimeout(timeoutId);
-            const error = err instanceof Error ? err.message : 'Unknown';
-            console.log(`✗ ${instance}: ${error}`);
-            throw new Error(error);
-          }
-        };
-
-        console.log('Finding fastest working proxy...');
-        try {
-          const allPromises = invidiousInstances.map(fetchFromInstance);
-          streamUrl = await Promise.any(allPromises);
-          console.log(`✓ Using Invidious direct stream`);
-        } catch (error) {
-          console.error('All Invidious instances failed, trying fallback method');
-          
-          // Fallback: Use first instance with direct format
-          for (const instance of invidiousInstances.slice(0, 2)) {
-            try {
-              streamUrl = `${instance}/latest_version?id=${trackId}&itag=251`;
-              console.log(`Using fallback: ${instance}`);
-              break;
-            } catch (e) {
-              continue;
-            }
-          }
-          
-          if (!streamUrl) {
-            throw new Error('YouTube streaming temporarily unavailable');
-          }
-        }
+        // Get Supabase project URL from environment
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://zokteleyadyodflghuse.supabase.co';
+        
+        // Return our proxy URL that will handle the actual streaming
+        streamUrl = `${supabaseUrl}/functions/v1/stream-proxy?source=ytmusic&trackId=${trackId}`;
+        console.log(`✓ Stream proxy ready: ${streamUrl}`);
         
         break;
       }
