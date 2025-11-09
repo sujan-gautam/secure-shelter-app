@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
       }
 
       case 'ytmusic': {
-        // YouTube Music - use parallel requests with Promise.race for fastest response
+        // YouTube Music - use parallel requests with Promise.any for first success
         console.log(`Extracting YouTube audio for: ${trackId}`);
         
         const invidiousInstances = [
@@ -86,10 +86,10 @@ Deno.serve(async (req) => {
 
         // Helper function to fetch from a single instance
         const fetchFromInstance = async (instance: string): Promise<{ url: string; instance: string }> => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout per instance
+          
           try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3500); // Reduced to 3.5s
-            
             const response = await fetch(
               `${instance}/api/v1/videos/${trackId}`,
               { 
@@ -123,36 +123,31 @@ Deno.serve(async (req) => {
                   return bitrateB - bitrateA;
                 })[0];
                 
+                console.log(`✓ Success from ${instance}`);
                 return { url: bestAudio.url, instance };
               }
             }
             
             throw new Error('No audio streams found');
           } catch (err) {
+            clearTimeout(timeoutId);
             const error = err instanceof Error ? err.message : 'Unknown error';
+            console.log(`✗ ${instance} failed: ${error}`);
             throw new Error(`${instance}: ${error}`);
           }
         };
 
-        // Try first batch in parallel (top 4 most reliable instances)
-        console.log('Trying primary instances in parallel...');
+        // Use Promise.any to get the first successful response from all instances in parallel
+        console.log('Trying all instances in parallel...');
         try {
-          const primaryPromises = invidiousInstances.slice(0, 4).map(fetchFromInstance);
-          const result = await Promise.race(primaryPromises);
+          const allPromises = invidiousInstances.map(fetchFromInstance);
+          const result = await Promise.any(allPromises);
           streamUrl = result.url;
-          console.log(`✓ Audio extracted from ${result.instance} (fastest response)`);
-        } catch (primaryError) {
-          console.log('Primary instances failed, trying backup instances...');
-          
-          // If all primary fail, try backup instances in parallel
-          try {
-            const backupPromises = invidiousInstances.slice(4).map(fetchFromInstance);
-            const result = await Promise.race(backupPromises);
-            streamUrl = result.url;
-            console.log(`✓ Audio extracted from ${result.instance} (backup)`);
-          } catch (backupError) {
-            throw new Error('All YouTube proxies unavailable. Please try again.');
-          }
+          console.log(`✓ Audio stream ready from ${result.instance}`);
+        } catch (error) {
+          // All promises rejected
+          console.error('All YouTube proxy instances failed');
+          throw new Error('YouTube audio temporarily unavailable. All proxy servers are down. Please try a different track or source.');
         }
         
         break;
